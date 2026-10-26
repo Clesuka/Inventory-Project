@@ -1,0 +1,6 @@
+{
+  "name": "RigForge PC Inventory & POS",
+  "description": "Hardware and accessories inventory management, POS sales register with price override, and operator CRUD audit log.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

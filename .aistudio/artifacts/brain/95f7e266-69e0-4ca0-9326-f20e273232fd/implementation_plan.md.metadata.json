@@ -1,0 +1,6 @@
+{
+  "summary":  "Comprehensive audit report of the POS application (pros, cons, architectural flaws, retail gaps) and a phased implementation plan prioritizing per-item serial number (S/N) and warranty/RMA tracking.",
+  "updatedAt":  "2026-10-25T10:39:13.902708108Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}
