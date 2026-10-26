@@ -1,5 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import {
+  collection,
+  doc,
+  onSnapshot,
+  setDoc,
+  deleteDoc,
+} from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import {
   Item,
   UserAccount,
   UserRole,
@@ -69,6 +77,7 @@ interface AppContextType {
   // Categories (Admin & Staff)
   categories: string[];
   addCategory: (name: string) => { success: boolean; error?: string };
+  updateCategory: (oldName: string, newName: string) => { success: boolean; error?: string; affectedItemsCount?: number };
   deleteCategory: (name: string) => { success: boolean; error?: string };
 
   // Inventory Items CRUD
@@ -151,6 +160,9 @@ interface AppContextType {
   // Audit Logs (Admin viewing)
   auditLogs: AuditLog[];
   clearLogs: () => void;
+
+  // Cloud sync
+  isCloudConnected: boolean;
 
   // Global utilities
   resetDataToSeed: () => void;
@@ -350,6 +362,150 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [auditLogs]);
 
+  // Cloud sync state & helpers
+  const [isCloudConnected, setIsCloudConnected] = useState<boolean>(true);
+
+  const syncDoc = (collectionName: string, id: string, data: any) => {
+    try {
+      const sanitized = JSON.parse(JSON.stringify(data));
+      setDoc(doc(db, collectionName, id), sanitized).catch((err) => {
+        console.warn(`Firestore sync error on ${collectionName}/${id}:`, err);
+        handleFirestoreError(err, OperationType.WRITE, `${collectionName}/${id}`);
+      });
+    } catch (e) {
+      console.warn('Sanitization error on Firestore write:', e);
+    }
+  };
+
+  const deleteDocById = (collectionName: string, id: string) => {
+    try {
+      deleteDoc(doc(db, collectionName, id)).catch((err) => {
+        console.warn(`Firestore delete error on ${collectionName}/${id}:`, err);
+        handleFirestoreError(err, OperationType.DELETE, `${collectionName}/${id}`);
+      });
+    } catch (e) {
+      console.warn('Error on Firestore delete:', e);
+    }
+  };
+
+  // Real-time Firestore synchronization
+  useEffect(() => {
+    const unsubItems = onSnapshot(
+      collection(db, 'items'),
+      (snapshot) => {
+        if (snapshot.empty) {
+          SEED_ITEMS.forEach((item) => {
+            syncDoc('items', item.id, item);
+          });
+        } else {
+          const loaded = snapshot.docs.map((d) => d.data() as Item);
+          setItems(loaded);
+        }
+        setIsCloudConnected(true);
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'items');
+      }
+    );
+
+    const unsubSales = onSnapshot(
+      collection(db, 'sales'),
+      (snapshot) => {
+        if (snapshot.empty) {
+          SEED_SALES.forEach((sale) => {
+            syncDoc('sales', sale.id, sale);
+          });
+        } else {
+          const loaded = snapshot.docs.map((d) => d.data() as SaleRecord);
+          loaded.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+          setSales(loaded);
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'sales');
+      }
+    );
+
+    const unsubRmas = onSnapshot(
+      collection(db, 'rmas'),
+      (snapshot) => {
+        if (snapshot.empty) {
+          SEED_RMAS.forEach((rma) => {
+            syncDoc('rmas', rma.id, rma);
+          });
+        } else {
+          const loaded = snapshot.docs.map((d) => d.data() as RmaRecord);
+          loaded.sort((a, b) => new Date(b.reportedAt).getTime() - new Date(a.reportedAt).getTime());
+          setRmas(loaded);
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'rmas');
+      }
+    );
+
+    const unsubUsers = onSnapshot(
+      collection(db, 'users'),
+      (snapshot) => {
+        if (snapshot.empty) {
+          SEED_ACCOUNTS.forEach((acc) => {
+            syncDoc('users', acc.id, acc);
+          });
+        } else {
+          const loaded = snapshot.docs.map((d) => d.data() as UserAccount);
+          setAccounts(loaded);
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'users');
+      }
+    );
+
+    const unsubLogs = onSnapshot(
+      collection(db, 'logs'),
+      (snapshot) => {
+        if (snapshot.empty) {
+          SEED_LOGS.forEach((log) => {
+            syncDoc('logs', log.id, log);
+          });
+        } else {
+          const loaded = snapshot.docs.map((d) => d.data() as AuditLog);
+          loaded.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+          setAuditLogs(loaded);
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'logs');
+      }
+    );
+
+    const unsubCategories = onSnapshot(
+      collection(db, 'categories'),
+      (snapshot) => {
+        if (snapshot.empty) {
+          DEFAULT_CATEGORIES.forEach((cat) => {
+            syncDoc('categories', cat, { id: cat, name: cat });
+          });
+        } else {
+          const loaded = snapshot.docs.map((d) => (d.data() as { name: string }).name || d.id);
+          setCategories(loaded);
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'categories');
+      }
+    );
+
+    return () => {
+      unsubItems();
+      unsubSales();
+      unsubRmas();
+      unsubUsers();
+      unsubLogs();
+      unsubCategories();
+    };
+  }, []);
+
   // LOGIN via User ID & Password
   const login = (userId: string, password: string): { success: boolean; error?: string } => {
     const cleanId = userId.trim().toLowerCase();
@@ -438,6 +594,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       ],
     };
     setAuditLogs((prev) => [log, ...prev]);
+    syncDoc('users', newUser.id, newUser);
+    syncDoc('logs', log.id, log);
 
     return { success: true };
   };
@@ -527,6 +685,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       diff: diffs,
     };
     setAuditLogs((prev) => [log, ...prev]);
+    syncDoc('users', updatedAcc.id, updatedAcc);
+    syncDoc('logs', log.id, log);
 
     return { success: true };
   };
@@ -573,6 +733,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       diff: [{ field: 'status', from: 'Active Account', to: 'Deleted' }],
     };
     setAuditLogs((prev) => [log, ...prev]);
+    deleteDocById('users', id);
+    syncDoc('logs', log.id, log);
 
     if (isSelf) {
       setCurrentUser(null);
@@ -596,6 +758,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
 
     setCategories((prev) => [...prev, trimmed]);
+    syncDoc('categories', trimmed, { id: trimmed, name: trimmed });
 
     if (currentUser) {
       const now = new Date().toISOString();
@@ -612,9 +775,100 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         details: `Added new hardware category "${trimmed}"`,
       };
       setAuditLogs((prev) => [log, ...prev]);
+      syncDoc('logs', log.id, log);
     }
 
     return { success: true };
+  };
+
+  // CATEGORIES MANAGEMENT: Update / Rename Category (Both Admin and Staff permitted)
+  const updateCategory = (
+    oldName: string,
+    newName: string
+  ): { success: boolean; error?: string; affectedItemsCount?: number } => {
+    const trimmedOld = oldName.trim();
+    const trimmedNew = newName.trim();
+
+    if (!trimmedNew) {
+      return { success: false, error: 'Category name cannot be empty.' };
+    }
+    if (trimmedNew.length > 40) {
+      return { success: false, error: 'Category name is too long (maximum 40 characters).' };
+    }
+
+    const existingOld = categories.find((c) => c.toLowerCase() === trimmedOld.toLowerCase());
+    if (!existingOld) {
+      return { success: false, error: `Category "${oldName}" does not exist.` };
+    }
+
+    if (existingOld === trimmedNew) {
+      return { success: true, affectedItemsCount: 0 };
+    }
+
+    // Check if new name is already taken by another category
+    const isDuplicate = categories.some(
+      (c) => c.toLowerCase() === trimmedNew.toLowerCase() && c.toLowerCase() !== trimmedOld.toLowerCase()
+    );
+    if (isDuplicate) {
+      return { success: false, error: `Category "${trimmedNew}" already exists.` };
+    }
+
+    const now = new Date().toISOString();
+    const operatorName = currentUser ? currentUser.name : 'System';
+
+    // 1. Update categories list
+    setCategories((prev) =>
+      prev.map((c) => (c.toLowerCase() === trimmedOld.toLowerCase() ? trimmedNew : c))
+    );
+
+    // 2. Cascade rename across all inventory items assigned to this category
+    const itemsToUpdate: Item[] = [];
+    setItems((prev) =>
+      prev.map((item) => {
+        if (item.category.trim().toLowerCase() === trimmedOld.toLowerCase()) {
+          const updatedItem: Item = {
+            ...item,
+            category: trimmedNew,
+            updatedAt: now,
+            lastModifiedBy: operatorName,
+          };
+          itemsToUpdate.push(updatedItem);
+          return updatedItem;
+        }
+        return item;
+      })
+    );
+
+    // 3. Firestore persistence: Remove old category doc, create new doc, and sync updated items
+    deleteDocById('categories', existingOld);
+    syncDoc('categories', trimmedNew, { id: trimmedNew, name: trimmedNew });
+    itemsToUpdate.forEach((item) => {
+      syncDoc('items', item.id, item);
+    });
+
+    // 4. Audit Log
+    if (currentUser) {
+      const log: AuditLog = {
+        id: `log-${Date.now()}`,
+        timestamp: now,
+        action: 'UPDATE_CATEGORY',
+        entityType: 'CATEGORY',
+        entityId: `cat-${Date.now()}`,
+        entityName: trimmedNew,
+        operatorId: currentUser.id,
+        operatorName: currentUser.name,
+        operatorRole: currentUser.role,
+        details: `Renamed category from "${existingOld}" to "${trimmedNew}" (${itemsToUpdate.length} item(s) automatically reclassified)`,
+        diff: [
+          { field: 'name', from: existingOld, to: trimmedNew },
+          { field: 'affectedItems', from: 0, to: itemsToUpdate.length },
+        ],
+      };
+      setAuditLogs((prev) => [log, ...prev]);
+      syncDoc('logs', log.id, log);
+    }
+
+    return { success: true, affectedItemsCount: itemsToUpdate.length };
   };
 
   // CATEGORIES MANAGEMENT: Delete Category (Both Admin and Staff permitted, protected by item safeguard)
@@ -637,6 +891,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
 
     setCategories((prev) => prev.filter((c) => c.toLowerCase() !== existing.toLowerCase()));
+    deleteDocById('categories', existing);
 
     if (currentUser) {
       const now = new Date().toISOString();
@@ -653,6 +908,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         details: `Deleted category "${existing}" (had 0 items assigned)`,
       };
       setAuditLogs((prev) => [log, ...prev]);
+      syncDoc('logs', log.id, log);
     }
 
     return { success: true };
@@ -701,6 +957,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       diff: diffs,
     };
     setAuditLogs((prev) => [log, ...prev]);
+    syncDoc('items', newItem.id, newItem);
+    syncDoc('logs', log.id, log);
 
     return newItem;
   };
@@ -765,6 +1023,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       diff: diffs,
     };
     setAuditLogs((prev) => [log, ...prev]);
+    syncDoc('items', updatedItem.id, updatedItem);
+    syncDoc('logs', log.id, log);
   };
 
   // INVENTORY: Delete Item (ADMIN ONLY!)
@@ -800,6 +1060,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       ],
     };
     setAuditLogs((prev) => [log, ...prev]);
+    deleteDocById('items', id);
+    syncDoc('logs', log.id, log);
 
     return { success: true };
   };
@@ -817,18 +1079,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (delta === 0) return;
 
     const now = new Date().toISOString();
-    setItems((prev) =>
-      prev.map((i) =>
-        i.id === id
-          ? {
-              ...i,
-              stock: newStock,
-              updatedAt: now,
-              lastModifiedBy: operatorName,
-            }
-          : i
-      )
-    );
+    const updatedStockItem = {
+      ...target,
+      stock: newStock,
+      updatedAt: now,
+      lastModifiedBy: operatorName,
+    };
+    setItems((prev) => prev.map((i) => (i.id === id ? updatedStockItem : i)));
 
     const log: AuditLog = {
       id: `log-${Date.now()}`,
@@ -844,6 +1101,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       diff: [{ field: 'stock', from: target.stock, to: newStock }],
     };
     setAuditLogs((prev) => [log, ...prev]);
+    syncDoc('items', id, updatedStockItem);
+    syncDoc('logs', log.id, log);
   };
 
   // INVENTORY: Add Note to Item Log
@@ -877,6 +1136,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
 
     setAuditLogs((prev) => [log, ...prev]);
+    syncDoc('logs', log.id, log);
     return { success: true };
   };
 
@@ -935,24 +1195,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       purchaseDate: now,
     }));
 
-    setItems((prev) =>
-      prev.map((item) => {
-        if (item.id !== itemId) return item;
-        const currentSerials = item.serialNumbers || [];
-        const combinedSerials = [...currentSerials, ...newSerialObjects];
-        const inStockCount = combinedSerials.filter((s) => s.status === 'IN_STOCK').length;
+    const currentSerials = targetItem.serialNumbers || [];
+    const combinedSerials = [...currentSerials, ...newSerialObjects];
+    const inStockCount = combinedSerials.filter((s) => s.status === 'IN_STOCK').length;
 
-        return {
-          ...item,
-          hasSerials: true,
-          defaultWarrantyMonths: wMonths,
-          serialNumbers: combinedSerials,
-          stock: inStockCount,
-          updatedAt: now,
-          lastModifiedBy: operatorName,
-        };
-      })
-    );
+    const updatedItem: Item = {
+      ...targetItem,
+      hasSerials: true,
+      defaultWarrantyMonths: wMonths,
+      serialNumbers: combinedSerials,
+      stock: inStockCount,
+      updatedAt: now,
+      lastModifiedBy: operatorName,
+    };
+
+    setItems((prev) => prev.map((item) => (item.id === itemId ? updatedItem : item)));
 
     const log: AuditLog = {
       id: `log-${Date.now()}`,
@@ -970,6 +1227,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       diff: [{ field: 'serialCount', from: targetItem.serialNumbers?.length || 0, to: (targetItem.serialNumbers?.length || 0) + cleanSerials.length }],
     };
     setAuditLogs((prev) => [log, ...prev]);
+    syncDoc('items', itemId, updatedItem);
+    syncDoc('logs', log.id, log);
 
     return { success: true, added: cleanSerials.length };
   };
@@ -993,22 +1252,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const operatorRole = currentUser ? currentUser.role : 'Staff';
     const prevStatus = serial.status;
 
-    setItems((prev) =>
-      prev.map((item) => {
-        if (item.id !== itemId) return item;
-        const updatedSerials = (item.serialNumbers || []).map((s) =>
-          s.id === serialId ? { ...s, status, notes: notes || s.notes } : s
-        );
-        const inStockCount = updatedSerials.filter((s) => s.status === 'IN_STOCK').length;
-        return {
-          ...item,
-          serialNumbers: updatedSerials,
-          stock: inStockCount,
-          updatedAt: now,
-          lastModifiedBy: operatorName,
-        };
-      })
+    const updatedSerials = (targetItem.serialNumbers || []).map((s) =>
+      s.id === serialId ? { ...s, status, notes: notes || s.notes } : s
     );
+    const inStockCount = updatedSerials.filter((s) => s.status === 'IN_STOCK').length;
+    const updatedItem: Item = {
+      ...targetItem,
+      serialNumbers: updatedSerials,
+      stock: inStockCount,
+      updatedAt: now,
+      lastModifiedBy: operatorName,
+    };
+
+    setItems((prev) => prev.map((item) => (item.id === itemId ? updatedItem : item)));
 
     const log: AuditLog = {
       id: `log-${Date.now()}`,
@@ -1026,6 +1282,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       diff: [{ field: 'status', from: prevStatus, to: status }],
     };
     setAuditLogs((prev) => [log, ...prev]);
+    syncDoc('items', itemId, updatedItem);
+    syncDoc('logs', log.id, log);
 
     return { success: true };
   };
@@ -1053,20 +1311,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const operatorId = currentUser ? currentUser.id : 'usr-system';
     const operatorRole = currentUser ? currentUser.role : 'Staff';
 
-    setItems((prev) =>
-      prev.map((item) => {
-        if (item.id !== itemId) return item;
-        const filtered = (item.serialNumbers || []).filter((s) => s.id !== serialId);
-        const inStockCount = filtered.filter((s) => s.status === 'IN_STOCK').length;
-        return {
-          ...item,
-          serialNumbers: filtered,
-          stock: inStockCount,
-          updatedAt: now,
-          lastModifiedBy: operatorName,
-        };
-      })
-    );
+    const filtered = (targetItem.serialNumbers || []).filter((s) => s.id !== serialId);
+    const inStockCount = filtered.filter((s) => s.status === 'IN_STOCK').length;
+    const updatedItem: Item = {
+      ...targetItem,
+      serialNumbers: filtered,
+      stock: inStockCount,
+      updatedAt: now,
+      lastModifiedBy: operatorName,
+    };
+
+    setItems((prev) => prev.map((item) => (item.id === itemId ? updatedItem : item)));
 
     const log: AuditLog = {
       id: `log-${Date.now()}`,
@@ -1081,6 +1336,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       details: `Deleted serial number record ${serial.serialNumber} from catalog.`,
     };
     setAuditLogs((prev) => [log, ...prev]);
+    syncDoc('items', itemId, updatedItem);
+    syncDoc('logs', log.id, log);
 
     return { success: true };
   };
@@ -1191,25 +1448,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
 
     // Transition serial status to RMA_PENDING
-    setItems((prev) =>
-      prev.map((i) => {
-        if (i.id !== item.id) return i;
-        const updatedSerials = (i.serialNumbers || []).map((s) =>
-          s.id === serial.id
-            ? { ...s, status: 'RMA_PENDING' as SerialStatus, notes: `Under active ${rmaNumber}: ${issueDescription.trim()}` }
-            : s
-        );
-        const inStockCount = updatedSerials.filter((s) => s.status === 'IN_STOCK').length;
-        return {
-          ...i,
-          serialNumbers: updatedSerials,
-          stock: inStockCount,
-          updatedAt: now,
-          lastModifiedBy: operatorName,
-        };
-      })
+    const updatedSerials = (item.serialNumbers || []).map((s) =>
+      s.id === serial.id
+        ? { ...s, status: 'RMA_PENDING' as SerialStatus, notes: `Under active ${rmaNumber}: ${issueDescription.trim()}` }
+        : s
     );
+    const inStockCount = updatedSerials.filter((s) => s.status === 'IN_STOCK').length;
+    const updatedItem: Item = {
+      ...item,
+      serialNumbers: updatedSerials,
+      stock: inStockCount,
+      updatedAt: now,
+      lastModifiedBy: operatorName,
+    };
 
+    setItems((prev) => prev.map((i) => (i.id === item.id ? updatedItem : i)));
     setRmas((prev) => [newRma, ...prev]);
 
     const log: AuditLog = {
@@ -1225,6 +1478,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       details: `Filed warranty RMA claim for ${item.name} S/N ${serial.serialNumber}. Customer: ${customerName}. Issue: "${issueDescription}"`,
     };
     setAuditLogs((prev) => [log, ...prev]);
+    syncDoc('items', item.id, updatedItem);
+    syncDoc('rmas', newRma.id, newRma);
+    syncDoc('logs', log.id, log);
 
     return { success: true, rma: newRma };
   };
@@ -1253,24 +1509,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       resolution;
 
     // Update RMA record
-    setRmas((prev) =>
-      prev.map((r) =>
-        r.id === rmaId
-          ? {
-              ...r,
-              status,
-              actionTaken,
-              replacementSerialId,
-              replacementSerialNumber,
-              refundAmount,
-              resolvedAt: now,
-              notes: notes ? `${r.notes ? r.notes + ' | ' : ''}${notes}` : r.notes,
-            }
-          : r
-      )
-    );
+    const updatedRma: RmaRecord = {
+      ...targetRma,
+      status,
+      actionTaken,
+      replacementSerialId,
+      replacementSerialNumber,
+      refundAmount,
+      resolvedAt: now,
+      notes: notes ? `${targetRma.notes ? targetRma.notes + ' | ' : ''}${notes}` : targetRma.notes,
+    };
+    setRmas((prev) => prev.map((r) => (r.id === rmaId ? updatedRma : r)));
+    syncDoc('rmas', rmaId, updatedRma);
 
     // Update item serial numbers accordingly
+    const updatedItemsList: Item[] = [];
     setItems((prev) =>
       prev.map((item) => {
         let changed = false;
@@ -1318,15 +1571,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (!changed) return item;
 
         const inStockCount = serials.filter((s) => s.status === 'IN_STOCK').length;
-        return {
+        const modifiedItem: Item = {
           ...item,
           serialNumbers: serials,
           stock: inStockCount,
           updatedAt: now,
           lastModifiedBy: operatorName,
         };
+        updatedItemsList.push(modifiedItem);
+        return modifiedItem;
       })
     );
+    updatedItemsList.forEach((it) => syncDoc('items', it.id, it));
 
     const log: AuditLog = {
       id: `log-${Date.now()}`,
@@ -1343,6 +1599,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }${refundAmount ? ` Refund: ${formatIDR(refundAmount)}.` : ''}${notes ? ` Note: "${notes}"` : ''}`,
     };
     setAuditLogs((prev) => [log, ...prev]);
+    syncDoc('logs', log.id, log);
 
     return { success: true };
   };
@@ -1448,6 +1705,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
 
     // Deduct stock and update serial statuses
+    const updatedCatalogItems: Item[] = [];
     setItems((prevItems) => {
       return prevItems.map((catalogItem) => {
         const cartMatch = cartItems.find((ci) => ci.item.id === catalogItem.id);
@@ -1474,27 +1732,33 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           });
 
           const inStockCount = updatedSerials.filter((s) => s.status === 'IN_STOCK').length;
-          return {
+          const updatedItem: Item = {
             ...catalogItem,
             serialNumbers: updatedSerials,
             stock: inStockCount,
             updatedAt: now,
             lastModifiedBy: operatorName,
           };
+          updatedCatalogItems.push(updatedItem);
+          return updatedItem;
         }
 
         // Standard non-serialized quantity deduction
         const nextStock = Math.max(0, catalogItem.stock - cartMatch.quantity);
-        return {
+        const updatedItem: Item = {
           ...catalogItem,
           stock: nextStock,
           updatedAt: now,
           lastModifiedBy: operatorName,
         };
+        updatedCatalogItems.push(updatedItem);
+        return updatedItem;
       });
     });
+    updatedCatalogItems.forEach((it) => syncDoc('items', it.id, it));
 
     setSales((prev) => [saleRecord, ...prev]);
+    syncDoc('sales', saleRecord.id, saleRecord);
 
     // Audit Log for Sale
     const itemsDescription = cartItems
@@ -1557,6 +1821,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
 
     setAuditLogs((prev) => [...logsToAdd, ...prev]);
+    logsToAdd.forEach((l) => syncDoc('logs', l.id, l));
     return saleRecord;
   };
 
@@ -1575,6 +1840,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       details: 'Audit log ledger was cleared by administrator.',
     };
     setAuditLogs([clearLog]);
+    syncDoc('logs', clearLog.id, clearLog);
   };
 
   const resetDataToSeed = () => {
@@ -1596,6 +1862,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     } catch (e) {
       console.error(e);
     }
+
+    SEED_ACCOUNTS.forEach((a) => syncDoc('users', a.id, a));
+    DEFAULT_CATEGORIES.forEach((c) => syncDoc('categories', c, { id: c, name: c }));
+    SEED_ITEMS.forEach((i) => syncDoc('items', i.id, i));
+    SEED_SALES.forEach((s) => syncDoc('sales', s.id, s));
+    SEED_RMAS.forEach((r) => syncDoc('rmas', r.id, r));
+    SEED_LOGS.forEach((l) => syncDoc('logs', l.id, l));
   };
 
   const exportDataJson = () => {
@@ -1680,6 +1953,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         deleteUser,
         categories,
         addCategory,
+        updateCategory,
         deleteCategory,
         items,
         addItem,
@@ -1698,6 +1972,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         completeSale,
         auditLogs,
         clearLogs,
+        isCloudConnected,
         resetDataToSeed,
         exportDataJson,
         exportInventoryCsv,

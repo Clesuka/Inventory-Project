@@ -1,0 +1,92 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Inventory items collection
+    match /items/{itemId} {
+      allow read: if true;
+      allow create, update: if isValidId(itemId)
+        && incoming().name is string && incoming().name.size() > 0 && incoming().name.size() <= 200
+        && incoming().brand is string && incoming().brand.size() > 0 && incoming().brand.size() <= 100
+        && incoming().category is string
+        && incoming().sku is string && incoming().sku.size() > 0
+        && incoming().buyPrice is number
+        && incoming().sellPrice is number
+        && incoming().stock is number;
+      allow delete: if isValidId(itemId);
+    }
+
+    // Sales transactions collection
+    match /sales/{saleId} {
+      allow read: if true;
+      allow create: if isValidId(saleId)
+        && incoming().receiptNumber is string
+        && incoming().items is list
+        && incoming().finalTotal is number;
+      allow update, delete: if false; // Immutable sales ledger
+    }
+
+    // Warranty RMA claims collection
+    match /rmas/{rmaId} {
+      allow read: if true;
+      allow create, update: if isValidId(rmaId)
+        && incoming().rmaNumber is string
+        && incoming().serialNumber is string
+        && incoming().customerName is string
+        && incoming().issueDescription is string
+        && incoming().status is string;
+      allow delete: if isValidId(rmaId);
+    }
+
+    // Store user accounts collection
+    match /users/{userId} {
+      allow read: if true;
+      allow create, update: if isValidId(userId)
+        && incoming().userId is string
+        && incoming().name is string
+        && incoming().role is string;
+      allow delete: if isValidId(userId);
+    }
+
+    // Audit logs collection (immutable ledger)
+    match /logs/{logId} {
+      allow read: if true;
+      allow create: if isValidId(logId)
+        && incoming().action is string
+        && incoming().timestamp is string
+        && incoming().operatorName is string;
+      allow update, delete: if false; // Immutable audit log
+    }
+
+    // Categories collection
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow create, update: if categoryId is string && categoryId.size() > 0 && categoryId.size() <= 128
+        && incoming().name is string && incoming().name.size() > 0;
+      allow delete: if categoryId is string && categoryId.size() > 0 && categoryId.size() <= 128;
+    }
+
+    // Test connection collection
+    match /test/connection {
+      allow read: if true;
+    }
+  }
+}

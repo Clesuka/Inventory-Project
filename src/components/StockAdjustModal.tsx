@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Plus, Minus, PackageCheck, AlertCircle } from 'lucide-react';
 import { Item } from '../types';
 import { useApp } from '../context/AppContext';
@@ -14,6 +14,14 @@ export const StockAdjustModal: React.FC<StockAdjustModalProps> = ({ item, onClos
   const [stockValue, setStockValue] = useState<number>(item ? item.stock : 0);
   const [reason, setReason] = useState('');
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (item) {
+      setStockValue(item.stock);
+      setReason('');
+      setError('');
+    }
+  }, [item]);
 
   if (!item) return null;
 

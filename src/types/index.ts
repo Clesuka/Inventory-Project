@@ -151,6 +151,7 @@ export type AuditAction =
   | 'UPDATE_USER'
   | 'DELETE_USER'
   | 'CREATE_CATEGORY'
+  | 'UPDATE_CATEGORY'
   | 'DELETE_CATEGORY';
 
 export interface AuditFieldDiff {

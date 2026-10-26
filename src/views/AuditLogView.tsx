@@ -117,6 +117,13 @@ export const AuditLogView: React.FC = () => {
       border: 'border-sky-200 dark:border-sky-800',
       icon: <Layers className="w-3.5 h-3.5" />,
     },
+    UPDATE_CATEGORY: {
+      label: 'Category Renamed',
+      bg: 'bg-indigo-50 dark:bg-indigo-950/40',
+      text: 'text-indigo-700 dark:text-indigo-300',
+      border: 'border-indigo-200 dark:border-indigo-800',
+      icon: <Edit2 className="w-3.5 h-3.5" />,
+    },
     DELETE_CATEGORY: {
       label: 'Category Deleted',
       bg: 'bg-pink-50 dark:bg-pink-950/40',

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Menu, Cpu, CircleDot } from 'lucide-react';
+import { Menu, Cpu, CircleDot, Cloud } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { ThemeToggleSwitch } from './ThemeToggleSwitch';
 
@@ -24,7 +24,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenMobileMenu,
   onNavigateHome,
 }) => {
-  const { currentUser } = useApp();
+  const { currentUser, isCloudConnected } = useApp();
   const tabInfo = TAB_TITLES[currentTab] || { title: 'Terminal', subtitle: 'RigForge POS' };
   const isAdmin = currentUser?.role === 'Admin';
 
@@ -64,9 +64,12 @@ export const Header: React.FC<HeaderProps> = ({
               <h1 className="font-display font-bold text-base text-slate-900 dark:text-white tracking-tight">
                 {tabInfo.title}
               </h1>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60">
-                <CircleDot className="w-2.5 h-2.5 text-emerald-500 animate-pulse" />
-                Live
+              <span
+                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60 shadow-2xs"
+                title="Synchronized with Google Cloud Firebase Firestore"
+              >
+                <Cloud className="w-3 h-3 text-emerald-500" />
+                <span>Firestore Live</span>
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400">

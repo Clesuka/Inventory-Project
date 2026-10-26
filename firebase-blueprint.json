@@ -1,0 +1,156 @@
+{
+  "entities": {
+    "Item": {
+      "title": "Item",
+      "description": "PC hardware components and accessories with serial number tracking",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "maxLength": 200 },
+        "brand": { "type": "string", "maxLength": 100 },
+        "category": { "type": "string", "maxLength": 50 },
+        "size": { "type": "string", "maxLength": 50 },
+        "color": { "type": "string", "maxLength": 50 },
+        "sku": { "type": "string", "maxLength": 50 },
+        "buyPrice": { "type": "number" },
+        "sellPrice": { "type": "number" },
+        "stock": { "type": "number" },
+        "minStockAlert": { "type": "number" },
+        "location": { "type": "string", "maxLength": 100 },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "hasSerials": { "type": "boolean" },
+        "defaultWarrantyMonths": { "type": "number" },
+        "serialNumbers": {
+          "type": "array",
+          "description": "List of individual serialized units"
+        },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "lastModifiedBy": { "type": "string" }
+      },
+      "required": ["id", "name", "brand", "category", "sku", "buyPrice", "sellPrice", "stock"]
+    },
+    "Sale": {
+      "title": "Sale",
+      "description": "Point of sale transaction receipt",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "receiptNumber": { "type": "string" },
+        "items": { "type": "array" },
+        "originalSubtotal": { "type": "number" },
+        "finalTotal": { "type": "number" },
+        "isPriceOverridden": { "type": "boolean" },
+        "overrideDifference": { "type": "number" },
+        "overrideReason": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "cashierId": { "type": "string" },
+        "cashierName": { "type": "string" },
+        "cashierRole": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "receiptNumber", "items", "originalSubtotal", "finalTotal", "paymentMethod", "timestamp"]
+    },
+    "Rma": {
+      "title": "Rma",
+      "description": "Warranty claim and hardware RMA lifecycle record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "rmaNumber": { "type": "string" },
+        "serialId": { "type": "string" },
+        "serialNumber": { "type": "string" },
+        "itemId": { "type": "string" },
+        "itemName": { "type": "string" },
+        "brand": { "type": "string" },
+        "category": { "type": "string" },
+        "saleReceiptNumber": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "issueDescription": { "type": "string" },
+        "status": { "type": "string" },
+        "actionTaken": { "type": "string" },
+        "replacementSerialId": { "type": "string" },
+        "replacementSerialNumber": { "type": "string" },
+        "refundAmount": { "type": "number" },
+        "reportedAt": { "type": "string" },
+        "resolvedAt": { "type": "string" },
+        "handledBy": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["id", "rmaNumber", "serialNumber", "itemId", "customerName", "issueDescription", "status", "reportedAt", "handledBy"]
+    },
+    "UserAccount": {
+      "title": "UserAccount",
+      "description": "Staff and Admin operator profile",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "password": { "type": "string" },
+        "email": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "name", "role", "password"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "System event audit trail record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "action": { "type": "string" },
+        "entityType": { "type": "string" },
+        "entityId": { "type": "string" },
+        "entityName": { "type": "string" },
+        "operatorId": { "type": "string" },
+        "operatorName": { "type": "string" },
+        "operatorRole": { "type": "string" },
+        "details": { "type": "string" },
+        "diff": { "type": "array" }
+      },
+      "required": ["id", "timestamp", "action", "entityType", "entityId", "operatorId", "operatorName", "details"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Hardware category tag",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" }
+      },
+      "required": ["id", "name"]
+    }
+  },
+  "firestore": {
+    "/items/{itemId}": {
+      "schema": "Item",
+      "description": "Inventory hardware components with stock counts and unit serial numbers"
+    },
+    "/sales/{saleId}": {
+      "schema": "Sale",
+      "description": "Point-of-sale checkout receipts"
+    },
+    "/rmas/{rmaId}": {
+      "schema": "Rma",
+      "description": "Warranty claims and resolutions"
+    },
+    "/users/{userId}": {
+      "schema": "UserAccount",
+      "description": "Staff and Admin operator profiles"
+    },
+    "/logs/{logId}": {
+      "schema": "AuditLog",
+      "description": "Audit trail log records"
+    },
+    "/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Product categories"
+    }
+  }
+}

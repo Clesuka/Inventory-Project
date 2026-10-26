@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, AlertCircle, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { X, Sparkles, AlertCircle, ShieldAlert, ShieldCheck, Layers } from 'lucide-react';
 import { Item, ItemCategory } from '../types';
 import { useApp } from '../context/AppContext';
 import { formatIDR } from '../utils/formatters';
 import { CurrencyInput } from './CurrencyInput';
+import { CategoryManagerModal } from './CategoryManagerModal';
 
 interface ItemModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({
   const [name, setName] = useState('');
   const [brand, setBrand] = useState('');
   const [category, setCategory] = useState<string>(() => categories[0] || 'GPU');
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [size, setSize] = useState('');
   const [color, setColor] = useState('');
   const [sku, setSku] = useState('');
@@ -185,9 +187,20 @@ export const ItemModal: React.FC<ItemModalProps> = ({
           {/* Row 1: Category & Brand */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
-                Hardware Category *
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                  Hardware Category *
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsCategoryModalOpen(true)}
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 font-medium cursor-pointer"
+                  title="Add, rename, or manage hardware categories"
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>Manage</span>
+                </button>
+              </div>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
@@ -507,6 +520,12 @@ export const ItemModal: React.FC<ItemModalProps> = ({
         </form>
 
       </div>
+
+      <CategoryManagerModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        onSelectCategory={(newCat) => setCategory(newCat)}
+      />
     </div>
   );
 };

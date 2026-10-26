@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AlertTriangle, X } from 'lucide-react';
 import { Item } from '../types';
 import { useApp } from '../context/AppContext';
+import { formatIDR } from '../utils/formatters';
 
 interface DeleteConfirmModalProps {
   item: Item | null;
@@ -50,7 +51,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({ item, on
             <div>Brand: {item.brand}</div>
             <div>Category: {item.category}</div>
             <div>Stock: {item.stock} unit(s)</div>
-            <div>Retail: ${item.sellPrice.toFixed(2)}</div>
+            <div>Retail: {formatIDR(item.sellPrice)}</div>
           </div>
 
           <div className="mt-4">

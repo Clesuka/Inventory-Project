@@ -10,6 +10,8 @@ import {
   Lock,
   Search,
   AlertTriangle,
+  Pencil,
+  Check,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
@@ -24,13 +26,15 @@ export const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({
   onClose,
   onSelectCategory,
 }) => {
-  const { categories, addCategory, deleteCategory, items } = useApp();
+  const { categories, addCategory, updateCategory, deleteCategory, items } = useApp();
 
   const [newCatName, setNewCatName] = useState('');
   const [filterQuery, setFilterQuery] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [categoryPendingDelete, setCategoryPendingDelete] = useState<string | null>(null);
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [editCatName, setEditCatName] = useState('');
 
   // Calculate item counts for each category
   const categoryStats = useMemo(() => {
@@ -81,6 +85,45 @@ export const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({
     setSuccessMsg(`Category "${created}" added successfully.`);
     if (onSelectCategory) {
       onSelectCategory(created);
+    }
+  };
+
+  const handleStartEdit = (catName: string) => {
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    setCategoryPendingDelete(null);
+    setEditingCategory(catName);
+    setEditCatName(catName);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCategory(null);
+    setEditCatName('');
+  };
+
+  const handleSaveEdit = (oldName: string) => {
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    const result = updateCategory(oldName, editCatName);
+    if (!result.success) {
+      setErrorMsg(result.error || 'Failed to update category name.');
+      return;
+    }
+
+    const updatedName = editCatName.trim();
+    setEditingCategory(null);
+    setEditCatName('');
+    setSuccessMsg(
+      `Category renamed to "${updatedName}"${
+        result.affectedItemsCount !== undefined && result.affectedItemsCount > 0
+          ? ` (${result.affectedItemsCount} assigned item${result.affectedItemsCount === 1 ? '' : 's'} updated)`
+          : ''
+      }.`
+    );
+
+    if (onSelectCategory) {
+      onSelectCategory(updatedName);
     }
   };
 
@@ -210,7 +253,64 @@ export const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({
             ) : (
               filteredCategories.map(({ name, itemCount }) => {
                 const isPendingDelete = categoryPendingDelete === name;
+                const isEditing = editingCategory === name;
                 const hasAssignedItems = itemCount > 0;
+
+                if (isEditing) {
+                  return (
+                    <div
+                      key={name}
+                      className="p-3.5 bg-zinc-800/60 border-l-4 border-l-cyan-500 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="text-xs font-semibold text-cyan-400 uppercase tracking-wider">
+                            Rename Category
+                          </span>
+                          {hasAssignedItems && (
+                            <span className="text-[11px] text-amber-300/90 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                              Will update {itemCount} assigned {itemCount === 1 ? 'item' : 'items'}
+                            </span>
+                          )}
+                        </div>
+                        <input
+                          type="text"
+                          value={editCatName}
+                          onChange={(e) => setEditCatName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleSaveEdit(name);
+                            } else if (e.key === 'Escape') {
+                              handleCancelEdit();
+                            }
+                          }}
+                          autoFocus
+                          maxLength={40}
+                          className="w-full px-3 py-1.5 bg-zinc-900 border border-cyan-500/50 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                          placeholder="New category name"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                        <button
+                          onClick={() => handleSaveEdit(name)}
+                          disabled={!editCatName.trim() || editCatName.trim() === name}
+                          className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 disabled:hover:bg-cyan-600 text-white text-xs font-medium rounded-lg flex items-center gap-1.5 transition shadow-sm cursor-pointer"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Save</span>
+                        </button>
+                        <button
+                          onClick={handleCancelEdit}
+                          className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium rounded-lg transition cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }
 
                 return (
                   <div
@@ -245,6 +345,15 @@ export const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({
                           Unused
                         </span>
                       )}
+
+                      {/* Edit / Rename Action */}
+                      <button
+                        onClick={() => handleStartEdit(name)}
+                        className="p-2 text-zinc-400 hover:text-cyan-400 hover:bg-cyan-500/10 rounded-lg transition cursor-pointer"
+                        title={`Rename category "${name}"`}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
 
                       {/* Delete Action or Safeguard Indicator */}
                       {isPendingDelete ? (
@@ -284,7 +393,7 @@ export const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({
                             setErrorMsg(null);
                             setCategoryPendingDelete(name);
                           }}
-                          className="p-2 text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition"
+                          className="p-2 text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition cursor-pointer"
                           title={`Delete unused category "${name}"`}
                         >
                           <Trash2 className="w-4 h-4" />
@@ -297,12 +406,12 @@ export const CategoryManagerModal: React.FC<CategoryManagerModalProps> = ({
             )}
           </div>
 
-          {/* Deletion rule helper note */}
+          {/* Deletion & renaming helper note */}
           <div className="p-3 bg-zinc-950/40 border border-zinc-800/60 rounded-xl flex items-start gap-2.5 text-zinc-400 text-xs">
-            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <AlertTriangle className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
             <div>
-              <span className="font-medium text-zinc-300">Data Integrity Protection: </span>
-              Categories with existing products cannot be deleted. To retire a category, update or remove its assigned items in the inventory first.
+              <span className="font-medium text-zinc-300">Smart Category Sync: </span>
+              Renaming a category automatically updates all associated products in inventory and syncs changes to cloud storage. Categories with assigned items are protected from accidental deletion.
             </div>
           </div>
         </div>

@@ -143,11 +143,20 @@ A new, streamlined tab and modal tool in the application:
 - Process full or partial returns against past sales receipts, restoring the returned serial number to `IN_STOCK` or `DEFECTIVE`.
 - Shift Drawer Management (Start-of-Day float, Cash Drops, End-of-Day X/Z balancing report).
 
+### Phase 4: Firebase Cloud Data Store Integration (Completed)
+- Provisioned Cloud Firestore database in Google Cloud project `gen-lang-client-0434349786` (region `asia-southeast1`).
+- Created `/firebase-blueprint.json` defining collections for `items`, `sales`, `rmas`, `users`, `logs`, and `categories`.
+- Implemented and deployed production security rules `/firestore.rules` adhering to the 8 security pillars with strict type validation.
+- Initialized Firebase client in `/src/lib/firebase.ts` targeting `firestoreDatabaseId`.
+- Added bidirectional real-time synchronization in `AppContext.tsx` with `onSnapshot` listeners and automatic seed initialization.
+- Added mutations sync (`syncDoc` / `deleteDocById`) across inventory, serial registration, sales checkout, warranty RMA claims, category management, and audit logs.
+- Added live cloud status indicator in `Header.tsx` displaying "Firestore Live".
+
 ---
 
 ## 4. Verification & Testing Strategy
-- Verify that creating items with serials sets `stock` to the number of active serials.
-- Test POS checkout with serialized items: ensure sales cannot proceed if required serials are unselected.
-- Confirm receipts display serial numbers and correct calculated warranty expiry dates.
-- Test RMA workflow: verify that defective units transition to `RMA_PENDING` or `DEFECTIVE` and that audit logs record the operator and reason.
-- Run `compile_applet` and `lint_applet` to guarantee zero TypeScript or build errors.
+- Verified creating and editing items syncs to Firestore `items` collection.
+- Verified serialized item POS checkout creates `sales` records and updates item serial statuses to `SOLD`.
+- Confirmed receipts display serial numbers and calculated warranty expiry dates.
+- Verified RMA workflow transitions serials and records RMA tickets in Firestore `rmas`.
+- Built and linted with zero TypeScript or Vite errors via `compile_applet` and `lint_applet`.

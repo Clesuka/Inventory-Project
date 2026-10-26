@@ -217,6 +217,17 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     return timelineEvents;
   }, [timelineEvents, timelineFilter]);
 
+  const itemSerials = useMemo(() => currentItem?.serialNumbers || [], [currentItem]);
+
+  const filteredSerials = useMemo(() => {
+    if (serialFilter === 'all') return itemSerials;
+    if (serialFilter === 'in_stock') return itemSerials.filter((s) => s.status === 'IN_STOCK');
+    if (serialFilter === 'sold') return itemSerials.filter((s) => s.status === 'SOLD');
+    if (serialFilter === 'rma') return itemSerials.filter((s) => s.status === 'RMA_PENDING');
+    if (serialFilter === 'defective') return itemSerials.filter((s) => s.status === 'DEFECTIVE');
+    return itemSerials;
+  }, [itemSerials, serialFilter]);
+
   if (!isOpen || !currentItem) return null;
 
   const isLowStock = currentItem.stock <= currentItem.minStockAlert && currentItem.stock > 0;
@@ -309,17 +320,6 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     setCopiedSerial(sn);
     setTimeout(() => setCopiedSerial(null), 1500);
   };
-
-  const itemSerials = useMemo(() => currentItem?.serialNumbers || [], [currentItem]);
-
-  const filteredSerials = useMemo(() => {
-    if (serialFilter === 'all') return itemSerials;
-    if (serialFilter === 'in_stock') return itemSerials.filter((s) => s.status === 'IN_STOCK');
-    if (serialFilter === 'sold') return itemSerials.filter((s) => s.status === 'SOLD');
-    if (serialFilter === 'rma') return itemSerials.filter((s) => s.status === 'RMA_PENDING');
-    if (serialFilter === 'defective') return itemSerials.filter((s) => s.status === 'DEFECTIVE');
-    return itemSerials;
-  }, [itemSerials, serialFilter]);
 
   return (
     <div
