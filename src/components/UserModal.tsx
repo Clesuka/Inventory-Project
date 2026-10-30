@@ -62,7 +62,7 @@ export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, editUser 
         name: name.trim(),
         userId: userId.trim().toLowerCase(),
         role,
-        email: email.trim() || `${userId.trim().toLowerCase()}@rigforge.io`,
+        email: email.trim() || `${userId.trim().toLowerCase()}@aceworld.io`,
       };
       if (password.trim()) {
         updates.password = password.trim();
@@ -223,7 +223,7 @@ export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, editUser 
             </label>
             <input
               type="email"
-              placeholder="e.g. marcus@rigforge.io"
+              placeholder="e.g. marcus@aceworld.io"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"

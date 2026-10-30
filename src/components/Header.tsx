@@ -25,7 +25,7 @@ export const Header: React.FC<HeaderProps> = ({
   onNavigateHome,
 }) => {
   const { currentUser, isCloudConnected } = useApp();
-  const tabInfo = TAB_TITLES[currentTab] || { title: 'Terminal', subtitle: 'RigForge POS' };
+  const tabInfo = TAB_TITLES[currentTab] || { title: 'Terminal', subtitle: 'Ace World POS' };
   const isAdmin = currentUser?.role === 'Admin';
 
   return (
@@ -53,7 +53,7 @@ export const Header: React.FC<HeaderProps> = ({
             <Cpu className="w-4 h-4" />
           </div>
           <span className="font-display font-extrabold text-sm text-slate-900 dark:text-white">
-            RigForge
+            Ace World
           </span>
         </button>
 

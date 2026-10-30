@@ -57,14 +57,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="flex flex-col">
               <div className="flex items-center gap-1.5">
                 <span className="font-display font-extrabold text-base tracking-tight text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                  RigForge
+                  Ace World
                 </span>
                 <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300 uppercase">
                   POS
                 </span>
               </div>
               <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium leading-none mt-0.5">
-                Hardware Inventory OS
+                Computer Inventory OS
               </span>
             </div>
           </button>

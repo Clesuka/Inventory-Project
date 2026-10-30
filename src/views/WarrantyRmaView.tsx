@@ -441,7 +441,7 @@ export const WarrantyRmaView: React.FC<WarrantyRmaViewProps> = ({ onOpenReceipt 
                 <strong className="font-mono text-slate-800 dark:text-slate-200">
                   {activeLookupResult.query}
                 </strong>
-                " was found in RigForge official inventory records.
+                " was found in Ace World Computer official inventory records.
               </p>
             </div>
           ) : (

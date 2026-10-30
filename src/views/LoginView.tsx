@@ -50,7 +50,7 @@ export const LoginView: React.FC = () => {
             <Cpu className="w-8 h-8 stroke-[2.2]" />
           </div>
           <h1 className="text-2xl font-extrabold font-display tracking-tight text-slate-900 dark:text-white">
-            RigForge <span className="text-blue-600 dark:text-blue-400">PC Depot</span>
+            Ace World <span className="text-blue-600 dark:text-blue-400">Computer</span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
             POS Register & Hardware Inventory Terminal

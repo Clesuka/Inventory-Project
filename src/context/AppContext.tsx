@@ -568,7 +568,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       name: userData.name.trim(),
       role: userData.role,
       password: userData.password.trim(),
-      email: userData.email?.trim() || `${cleanUserId}@rigforge.io`,
+      email: userData.email?.trim() || `${cleanUserId}@aceworld.io`,
       avatarColor: randomColor,
       createdAt: new Date().toISOString(),
     };
@@ -1416,7 +1416,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (!lookup.serial || !lookup.item) {
       return {
         success: false,
-        error: `Serial number "${serialNumber}" was not found in RigForge inventory.`,
+        error: `Serial number "${serialNumber}" was not found in Ace World Computer inventory.`,
       };
     }
 
@@ -1873,7 +1873,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const exportDataJson = () => {
     const exportObject = {
-      appName: 'RigForge PC Inventory & POS',
+      appName: 'Ace World Computer - POS & Inventory',
       exportedAt: new Date().toISOString(),
       exportedBy: currentUser?.name || 'System',
       accounts,
@@ -1886,7 +1886,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(exportObject, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute('href', dataStr);
-    downloadAnchor.setAttribute('download', `rigforge-pc-depot-backup-${new Date().toISOString().slice(0, 10)}.json`);
+    downloadAnchor.setAttribute('download', `aceworld-computer-backup-${new Date().toISOString().slice(0, 10)}.json`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
@@ -1933,7 +1933,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `rigforge-inventory-${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `aceworld-inventory-${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     link.remove();

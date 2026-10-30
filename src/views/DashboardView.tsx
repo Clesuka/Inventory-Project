@@ -73,7 +73,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             Welcome back, {currentUser?.name}
           </h1>
           <p className="text-blue-100 text-xs sm:text-sm mt-1.5 leading-relaxed">
-            RigForge PC Depot is ready. You have {lowStockCount > 0 ? `${lowStockCount} items requiring stock reorder` : 'all inventory levels nominal'}.
+            Ace World Computer is ready. You have {lowStockCount > 0 ? `${lowStockCount} items requiring stock reorder` : 'all inventory levels nominal'}.
           </p>
 
           <div className="flex flex-wrap items-center gap-3 mt-5">

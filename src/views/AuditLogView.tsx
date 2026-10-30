@@ -225,7 +225,7 @@ export const AuditLogView: React.FC = () => {
     link.setAttribute('href', encodedUri);
     link.setAttribute(
       'download',
-      `rigforge-audit-log-${new Date().toISOString().slice(0, 10)}.csv`
+      `aceworld-audit-log-${new Date().toISOString().slice(0, 10)}.csv`
     );
     document.body.appendChild(link);
     link.click();

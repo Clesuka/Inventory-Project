@@ -1,8 +1,8 @@
-# RigForge PC Depot
+# Ace World Computer
 
 A modern, high-performance Point of Sale (POS) and PC Hardware Inventory Terminal built with React, TypeScript, Tailwind CSS, and Firebase Firestore.
 
-RigForge PC Depot is engineered specifically for custom PC builders, hardware retail stores, and computer repair centers to manage inventory, serial-tracked components, warranties, point-of-sale checkouts, and RMA claims seamlessly.
+Ace World Computer is engineered specifically for custom PC builders, hardware retail stores, and computer repair centers to manage inventory, serial-tracked components, warranties, point-of-sale checkouts, and RMA claims seamlessly.
 
 ---
 
@@ -65,8 +65,8 @@ RigForge PC Depot is engineered specifically for custom PC builders, hardware re
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/your-username/rigforge-pc-depot.git
-   cd rigforge-pc-depot
+   git clone https://github.com/your-username/aceworld-computer.git
+   cd aceworld-computer
    ```
 
 2. **Install project dependencies:**
