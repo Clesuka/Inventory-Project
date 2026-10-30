@@ -126,21 +126,23 @@ When launching the application for the first time, you can sign in using either 
 
 ## 🌐 Deploying to GitHub Pages
 
-This project is pre-configured with `base: './'` in `vite.config.ts` for simple static deployment:
+This project is pre-configured with `base: './'` in `vite.config.ts` and includes a ready-to-use GitHub Actions workflow (`.github/workflows/deploy.yml`):
 
-1. Push your repository to GitHub:
+1. **Push your code to GitHub:**
    ```bash
    git add .
-   git commit -m "Initial commit"
+   git commit -m "Deploy to GitHub Pages"
    git push origin main
    ```
-2. In your repository on GitHub:
-   - Navigate to **Settings** > **Pages**.
-   - Under **Build and deployment** > **Source**, choose **GitHub Actions**.
-   - Select the **Vite** or **Static HTML** starter workflow (which runs `npm run build` and serves the `dist` folder).
-3. Once the workflow completes, your app will be live and will immediately connect to your cloud Firestore database.
+2. **Enable GitHub Pages:**
+   - In your repository, go to **Settings** > **Pages**.
+   - Under **Build and deployment** > **Source**, select **GitHub Actions**.
+   - *(You do not need to create or pick a starter — GitHub will automatically detect `.github/workflows/deploy.yml`).*
+3. **Automatic Deployment:**
+   - Go to the **Actions** tab to watch your deployment build and deploy.
+   - Once completed, your app will be live and will automatically connect to your Firestore database.
 
-*(You can also deploy directly to **Vercel**, **Netlify**, or **Firebase Hosting** by pointing the build command to `npm run build` and the output directory to `dist`.)*
+*(You can also deploy directly to **Vercel**, **Netlify**, or **Firebase Hosting** by setting the build command to `npm run build` and output directory to `dist`.)*
 
 ---
 
