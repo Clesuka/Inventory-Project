@@ -5,12 +5,8 @@ import {
   User,
   Eye,
   EyeOff,
-  Shield,
   ArrowRight,
   AlertCircle,
-  KeyRound,
-  ShieldCheck,
-  ShoppingBag,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { ThemeToggleSwitch } from '../components/ThemeToggleSwitch';
@@ -36,11 +32,6 @@ export const LoginView: React.FC = () => {
     }
   };
 
-  const handleQuickFill = (demoId: string, demoPass: string) => {
-    setUserId(demoId);
-    setPassword(demoPass);
-    setErrorMessage('');
-  };
 
   return (
     <div className="min-h-screen w-full flex flex-col justify-between bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white px-4 py-8 relative selection:bg-blue-500/20 selection:text-blue-600">
@@ -153,52 +144,6 @@ export const LoginView: React.FC = () => {
 
           </form>
 
-          {/* Quick Demo Credential Helper */}
-          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
-            <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
-              Quick Test Accounts:
-            </span>
-
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              
-              {/* Admin Test Button */}
-              <button
-                type="button"
-                onClick={() => handleQuickFill('admin', 'admin123')}
-                className="p-2.5 text-left rounded-xl border border-indigo-200 dark:border-indigo-900/60 bg-indigo-50/50 dark:bg-indigo-950/20 hover:bg-indigo-100/60 dark:hover:bg-indigo-900/40 transition-colors group cursor-pointer"
-              >
-                <div className="flex items-center gap-1.5 font-bold text-indigo-700 dark:text-indigo-400">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>Admin</span>
-                </div>
-                <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">
-                  ID: admin
-                </div>
-                <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">
-                  Pass: admin123
-                </div>
-              </button>
-
-              {/* Staff Test Button */}
-              <button
-                type="button"
-                onClick={() => handleQuickFill('staff', 'staff123')}
-                className="p-2.5 text-left rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50/50 dark:bg-amber-950/20 hover:bg-amber-100/60 dark:hover:bg-amber-900/40 transition-colors group cursor-pointer"
-              >
-                <div className="flex items-center gap-1.5 font-bold text-amber-700 dark:text-amber-400">
-                  <ShoppingBag className="w-3.5 h-3.5" />
-                  <span>Staff</span>
-                </div>
-                <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">
-                  ID: staff
-                </div>
-                <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">
-                  Pass: staff123
-                </div>
-              </button>
-
-            </div>
-          </div>
 
         </div>
 
