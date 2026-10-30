@@ -415,10 +415,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       <td className="py-3 px-4 max-w-xs">
                         <div className="font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 leading-snug transition-colors flex items-center gap-2 flex-wrap">
                           <span>{item.name}</span>
-                          {item.hasSerials && (
+                          {item.hasSerials ? (
                             <span className="inline-flex items-center gap-0.5 text-[10px] font-mono font-medium text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-1.5 py-0.5 rounded border border-blue-200/80 dark:border-blue-800" title="Serialized inventory: each unit is tracked by unique S/N">
                               <ShieldCheck className="w-3 h-3 text-blue-500" />
                               S/N ({item.serialNumbers?.filter(s => s.status === 'IN_STOCK').length || 0})
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-0.5 text-[10px] font-mono text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700" title="Non-serialized item (e.g. Tray CPU, bulk accessories)">
+                              No S/N (Tray)
                             </span>
                           )}
                         </div>
@@ -587,10 +591,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       {item.category}
                     </span>
                     <div className="flex items-center gap-2">
-                      {item.hasSerials && (
+                      {item.hasSerials ? (
                         <span className="inline-flex items-center gap-0.5 text-[10px] font-mono text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-1.5 py-0.5 rounded border border-blue-200/80 dark:border-blue-800" title="Serialized inventory">
                           <ShieldCheck className="w-3 h-3 text-blue-500" />
                           S/N ({item.serialNumbers?.filter(s => s.status === 'IN_STOCK').length || 0})
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-0.5 text-[10px] font-mono text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700" title="Non-serialized item">
+                          No S/N (Tray)
                         </span>
                       )}
                       <span className="font-mono text-[11px] text-slate-400">{item.location}</span>

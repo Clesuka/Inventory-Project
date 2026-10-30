@@ -211,6 +211,50 @@ export const SEED_ITEMS: Item[] = [
     lastModifiedBy: 'Alex Tan',
   },
 
+  // CPU 3 - Tray OEM (No Serial Numbers)
+  {
+    id: 'item-cpu-3-tray',
+    name: 'Ryzen 5 7500F 6-Core AM5 (Tray / No S/N)',
+    brand: 'AMD',
+    category: 'CPU',
+    size: 'Socket AM5 (6C / 12T)',
+    color: 'Ceramic Silver / Tray OEM',
+    sku: 'CPU-AMD-7500F-TRAY',
+    buyPrice: 2100000,
+    sellPrice: 2450000,
+    stock: 25,
+    minStockAlert: 5,
+    location: 'Cabinet-CPU-Tray-01',
+    notes: 'OEM Tray processor without retail box or cooler. Sold as bulk tray unit with 12-month store warranty.',
+    hasSerials: false,
+    defaultWarrantyMonths: 12,
+    createdAt: '2026-10-20T10:00:00.000Z',
+    updatedAt: '2026-10-20T10:00:00.000Z',
+    lastModifiedBy: 'Alex Tan',
+  },
+
+  // CPU 4 - Tray OEM (No Serial Numbers)
+  {
+    id: 'item-cpu-4-tray',
+    name: 'Core i5-12400F 6-Core (Tray / No S/N)',
+    brand: 'Intel',
+    category: 'CPU',
+    size: 'Socket LGA1700 (6C / 12T)',
+    color: 'Metallic Silver / Tray OEM',
+    sku: 'CPU-INT-12400F-TRAY',
+    buyPrice: 1650000,
+    sellPrice: 1950000,
+    stock: 30,
+    minStockAlert: 5,
+    location: 'Cabinet-CPU-Tray-02',
+    notes: 'Bulk tray processor, no retail box or fan cooler. 12-month distributor warranty.',
+    hasSerials: false,
+    defaultWarrantyMonths: 12,
+    createdAt: '2026-10-20T11:00:00.000Z',
+    updatedAt: '2026-10-20T11:00:00.000Z',
+    lastModifiedBy: 'Maya Lin',
+  },
+
   // Motherboard 1
   {
     id: 'item-mb-1',

@@ -122,7 +122,9 @@ interface AppContextType {
   // Warranty & RMA Management
   rmas: RmaRecord[];
   createRma: (data: {
-    serialNumber: string;
+    serialNumber?: string;
+    itemId?: string;
+    saleReceiptNumber?: string;
     issueDescription: string;
     customerName: string;
     customerPhone?: string;
@@ -251,9 +253,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [items, setItems] = useState<Item[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.ITEMS);
-      return saved ? JSON.parse(saved) : SEED_ITEMS;
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return SEED_ITEMS;
+      return [];
     }
   });
 
@@ -275,9 +277,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [sales, setSales] = useState<SaleRecord[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.SALES);
-      return saved ? JSON.parse(saved) : SEED_SALES;
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return SEED_SALES;
+      return [];
     }
   });
 
@@ -285,9 +287,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [rmas, setRmas] = useState<RmaRecord[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.RMAS);
-      return saved ? JSON.parse(saved) : SEED_RMAS;
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return SEED_RMAS;
+      return [];
     }
   });
 
@@ -295,9 +297,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.LOGS);
-      return saved ? JSON.parse(saved) : SEED_LOGS;
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return SEED_LOGS;
+      return [];
     }
   });
 
@@ -394,9 +396,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       collection(db, 'items'),
       (snapshot) => {
         if (snapshot.empty) {
-          SEED_ITEMS.forEach((item) => {
-            syncDoc('items', item.id, item);
-          });
+          setItems([]);
         } else {
           const loaded = snapshot.docs.map((d) => d.data() as Item);
           setItems(loaded);
@@ -412,9 +412,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       collection(db, 'sales'),
       (snapshot) => {
         if (snapshot.empty) {
-          SEED_SALES.forEach((sale) => {
-            syncDoc('sales', sale.id, sale);
-          });
+          setSales([]);
         } else {
           const loaded = snapshot.docs.map((d) => d.data() as SaleRecord);
           loaded.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -430,9 +428,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       collection(db, 'rmas'),
       (snapshot) => {
         if (snapshot.empty) {
-          SEED_RMAS.forEach((rma) => {
-            syncDoc('rmas', rma.id, rma);
-          });
+          setRmas([]);
         } else {
           const loaded = snapshot.docs.map((d) => d.data() as RmaRecord);
           loaded.sort((a, b) => new Date(b.reportedAt).getTime() - new Date(a.reportedAt).getTime());
@@ -465,9 +461,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       collection(db, 'logs'),
       (snapshot) => {
         if (snapshot.empty) {
-          SEED_LOGS.forEach((log) => {
-            syncDoc('logs', log.id, log);
-          });
+          setAuditLogs([]);
         } else {
           const loaded = snapshot.docs.map((d) => d.data() as AuditLog);
           loaded.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -1402,44 +1396,77 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // WARRANTY & RMA: Create RMA Claim
   const createRma = (data: {
-    serialNumber: string;
+    serialNumber?: string;
+    itemId?: string;
+    saleReceiptNumber?: string;
     issueDescription: string;
     customerName: string;
     customerPhone?: string;
     initialStatus?: RmaStatus;
     notes?: string;
   }): { success: boolean; rma?: RmaRecord; error?: string } => {
-    const { serialNumber, issueDescription, customerName, customerPhone, initialStatus, notes } =
+    const { serialNumber, itemId, saleReceiptNumber, issueDescription, customerName, customerPhone, initialStatus, notes } =
       data;
 
-    const lookup = lookupSerial(serialNumber);
-    if (!lookup.serial || !lookup.item) {
+    let targetSerial: ItemSerialNumber | undefined;
+    let targetItem: Item | undefined;
+    let targetSale: SaleRecord | undefined;
+
+    if (serialNumber && serialNumber.trim()) {
+      const lookup = lookupSerial(serialNumber.trim());
+      targetSerial = lookup.serial;
+      targetItem = lookup.item;
+      targetSale = lookup.sale;
+    }
+
+    // If not found by serial (e.g. CPU Tray or non-serialized item), look up by itemId or query
+    if (!targetItem) {
+      if (itemId) {
+        targetItem = items.find((i) => i.id === itemId);
+      }
+      if (!targetItem && serialNumber) {
+        const cleanQuery = serialNumber.trim().toUpperCase();
+        targetItem = items.find(
+          (i) =>
+            i.sku.toUpperCase() === cleanQuery ||
+            i.id === serialNumber.trim() ||
+            i.name.toUpperCase().includes(cleanQuery)
+        );
+      }
+    }
+
+    if (!targetItem) {
       return {
         success: false,
-        error: `Serial number "${serialNumber}" was not found in Ace World Computer inventory.`,
+        error: serialNumber
+          ? `Hardware or S/N "${serialNumber}" was not found in Ace World Computer inventory.`
+          : 'Please specify a valid item or serial number for this RMA claim.',
       };
     }
 
-    const { serial, item, sale } = lookup;
     const now = new Date().toISOString();
     const operatorName = currentUser ? currentUser.name : 'System';
     const operatorId = currentUser ? currentUser.id : 'usr-system';
     const operatorRole = currentUser ? currentUser.role : 'Staff';
 
     const rmaNumber = `RMA-${new Date().getFullYear()}-${String(rmas.length + 1).padStart(4, '0')}`;
+    const serialId = targetSerial ? targetSerial.id : 'non-serial';
+    const finalSerialNum = targetSerial
+      ? targetSerial.serialNumber
+      : (serialNumber?.trim() || 'NO-SN (TRAY)');
 
     const newRma: RmaRecord = {
       id: `rma-${Date.now()}`,
       rmaNumber,
-      serialId: serial.id,
-      serialNumber: serial.serialNumber,
-      itemId: item.id,
-      itemName: item.name,
-      brand: item.brand,
-      category: item.category,
-      saleReceiptNumber: serial.saleReceiptNumber || sale?.receiptNumber,
+      serialId,
+      serialNumber: finalSerialNum,
+      itemId: targetItem.id,
+      itemName: targetItem.name,
+      brand: targetItem.brand,
+      category: targetItem.category,
+      saleReceiptNumber: targetSerial?.saleReceiptNumber || targetSale?.receiptNumber || saleReceiptNumber,
       customerName: customerName.trim(),
-      customerPhone: customerPhone?.trim() || serial.customerPhone,
+      customerPhone: customerPhone?.trim() || targetSerial?.customerPhone,
       issueDescription: issueDescription.trim(),
       status: initialStatus || 'PENDING_REVIEW',
       reportedAt: now,
@@ -1447,22 +1474,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       notes: notes?.trim() || undefined,
     };
 
-    // Transition serial status to RMA_PENDING
-    const updatedSerials = (item.serialNumbers || []).map((s) =>
-      s.id === serial.id
-        ? { ...s, status: 'RMA_PENDING' as SerialStatus, notes: `Under active ${rmaNumber}: ${issueDescription.trim()}` }
-        : s
-    );
-    const inStockCount = updatedSerials.filter((s) => s.status === 'IN_STOCK').length;
-    const updatedItem: Item = {
-      ...item,
-      serialNumbers: updatedSerials,
-      stock: inStockCount,
-      updatedAt: now,
-      lastModifiedBy: operatorName,
-    };
-
-    setItems((prev) => prev.map((i) => (i.id === item.id ? updatedItem : i)));
+    // If item has serials and unit was tracked, transition unit status to RMA_PENDING
+    if (targetSerial) {
+      const updatedSerials = (targetItem.serialNumbers || []).map((s) =>
+        s.id === targetSerial!.id
+          ? { ...s, status: 'RMA_PENDING' as SerialStatus, notes: `Under active ${rmaNumber}: ${issueDescription.trim()}` }
+          : s
+      );
+      const inStockCount = updatedSerials.filter((s) => s.status === 'IN_STOCK').length;
+      const updatedItem: Item = {
+        ...targetItem,
+        serialNumbers: updatedSerials,
+        stock: inStockCount,
+        updatedAt: now,
+        lastModifiedBy: operatorName,
+      };
+      setItems((prev) => prev.map((i) => (i.id === targetItem!.id ? updatedItem : i)));
+      syncDoc('items', targetItem.id, updatedItem);
+    }
     setRmas((prev) => [newRma, ...prev]);
 
     const log: AuditLog = {
@@ -1471,14 +1500,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       action: 'RMA_INITIATED',
       entityType: 'RMA',
       entityId: newRma.id,
-      entityName: `${newRma.rmaNumber} (${serial.serialNumber})`,
+      entityName: `${newRma.rmaNumber} (${newRma.serialNumber})`,
       operatorId,
       operatorName,
       operatorRole,
-      details: `Filed warranty RMA claim for ${item.name} S/N ${serial.serialNumber}. Customer: ${customerName}. Issue: "${issueDescription}"`,
+      details: `Filed warranty RMA claim for ${targetItem.name} (${newRma.serialNumber}). Customer: ${customerName}. Issue: "${issueDescription}"`,
     };
     setAuditLogs((prev) => [log, ...prev]);
-    syncDoc('items', item.id, updatedItem);
     syncDoc('rmas', newRma.id, newRma);
     syncDoc('logs', log.id, log);
 
@@ -1570,7 +1598,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
         if (!changed) return item;
 
-        const inStockCount = serials.filter((s) => s.status === 'IN_STOCK').length;
+        const inStockCount = item.hasSerials
+          ? serials.filter((s) => s.status === 'IN_STOCK').length
+          : (actionTaken === 'REPLACEMENT' ? Math.max(0, item.stock - 1) : item.stock);
         const modifiedItem: Item = {
           ...item,
           serialNumbers: serials,

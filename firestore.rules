@@ -41,7 +41,8 @@ service cloud.firestore {
         && incoming().receiptNumber is string
         && incoming().items is list
         && incoming().finalTotal is number;
-      allow update, delete: if false; // Immutable sales ledger
+      allow update: if false;
+      allow delete: if isValidId(saleId);
     }
 
     // Warranty RMA claims collection
@@ -73,7 +74,8 @@ service cloud.firestore {
         && incoming().action is string
         && incoming().timestamp is string
         && incoming().operatorName is string;
-      allow update, delete: if false; // Immutable audit log
+      allow update: if false;
+      allow delete: if isValidId(logId);
     }
 
     // Categories collection

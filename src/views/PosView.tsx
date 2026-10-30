@@ -216,13 +216,19 @@ export const PosView: React.FC<PosViewProps> = ({
       (s) => s.serialNumber.toUpperCase() === raw && s.status === 'IN_STOCK'
     );
 
-    if (!available) {
-      setError(`Serial "${raw}" is not found or not in-stock for this item.`);
-      setTimeout(() => setError(''), 3500);
-      return;
+    if (available) {
+      toggleSerialSelection(itemId, available.serialNumber);
+    } else {
+      // Allow adding scanned serial on the fly for unindexed / flexible stock
+      setCart((prev) =>
+        prev.map((ci) => {
+          if (ci.item.id !== itemId) return ci;
+          const current = ci.selectedSerials || [];
+          if (current.includes(raw)) return ci;
+          return { ...ci, selectedSerials: [...current, raw] };
+        })
+      );
     }
-
-    toggleSerialSelection(itemId, available.serialNumber);
     setSerialScanInputs((prev) => ({ ...prev, [itemId]: '' }));
   };
 
@@ -340,19 +346,8 @@ export const PosView: React.FC<PosViewProps> = ({
       }
     }
 
-    // Verify serial numbers for serialized hardware
-    for (const ci of cart) {
-      if (ci.item.hasSerials) {
-        const assigned = ci.selectedSerials?.length || 0;
-        if (assigned < ci.quantity) {
-          setError(
-            `Serial number(s) required for "${ci.item.name}": only ${assigned} of ${ci.quantity} assigned. Please select or scan unit serials before completing checkout.`
-          );
-          setExpandedSerials((prev) => ({ ...prev, [ci.item.id]: true }));
-          return;
-        }
-      }
-    }
+    // Serial numbers are optional (e.g. for CPU Tray, bulk accessories, or unindexed units).
+    // If cashier assigned any serials, they are recorded to the receipt and warranty.
 
     // Prepare items to process with customized prices and selected serials
     const itemsToProcess = cart.map((ci) => {
@@ -616,17 +611,20 @@ export const PosView: React.FC<PosViewProps> = ({
                         <div className="flex items-center gap-1.5">
                           <Barcode className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
                           <span className="text-[11px] font-medium text-slate-700 dark:text-slate-300">
-                            Unit S/N:
+                            Unit S/N (Optional):
                           </span>
                           {ci.selectedSerials && ci.selectedSerials.length >= ci.quantity ? (
                             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
                               <CheckCircle2 className="w-3 h-3" />
+                              {ci.selectedSerials.length}/{ci.quantity} S/N Assigned
+                            </span>
+                          ) : ci.selectedSerials && ci.selectedSerials.length > 0 ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300">
                               {ci.selectedSerials.length}/{ci.quantity} Assigned
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
-                              <AlertCircle className="w-3 h-3" />
-                              {ci.selectedSerials?.length || 0}/{ci.quantity} Required
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
+                              Optional (Tray/Skip S/N)
                             </span>
                           )}
                         </div>

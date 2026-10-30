@@ -65,6 +65,7 @@ export const WarrantyRmaView: React.FC<WarrantyRmaViewProps> = ({ onOpenReceipt 
   // Modals state
   const [isNewRmaModalOpen, setIsNewRmaModalOpen] = useState(false);
   const [newRmaSerial, setNewRmaSerial] = useState('');
+  const [newRmaItemId, setNewRmaItemId] = useState('');
   const [newRmaIssue, setNewRmaIssue] = useState('');
   const [newRmaCustomer, setNewRmaCustomer] = useState('');
   const [newRmaPhone, setNewRmaPhone] = useState('');
@@ -198,8 +199,8 @@ export const WarrantyRmaView: React.FC<WarrantyRmaViewProps> = ({ onOpenReceipt 
   // Submit New RMA Claim
   const handleCreateRmaSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newRmaSerial.trim()) {
-      setNewRmaError('Serial number is required.');
+    if (!newRmaSerial.trim() && !newRmaItemId) {
+      setNewRmaError('Please enter a Component Serial Number, SKU, or select an item from the catalog.');
       return;
     }
     if (!newRmaCustomer.trim()) {
@@ -212,7 +213,8 @@ export const WarrantyRmaView: React.FC<WarrantyRmaViewProps> = ({ onOpenReceipt 
     }
 
     const res = createRma({
-      serialNumber: newRmaSerial.trim(),
+      serialNumber: newRmaSerial.trim() || undefined,
+      itemId: newRmaItemId || undefined,
       customerName: newRmaCustomer.trim(),
       customerPhone: newRmaPhone.trim() || undefined,
       issueDescription: newRmaIssue.trim(),
@@ -884,27 +886,54 @@ export const WarrantyRmaView: React.FC<WarrantyRmaViewProps> = ({ onOpenReceipt 
             </div>
 
             <form onSubmit={handleCreateRmaSubmit} className="p-5 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-800 dark:text-slate-200 mb-1">
-                  Component Serial Number (S/N) *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={newRmaSerial}
-                  onChange={(e) => {
-                    const sn = e.target.value.toUpperCase();
-                    setNewRmaSerial(sn);
-                    // auto-fill customer if found
-                    const lookup = lookupSerial(sn);
-                    if (lookup.serial?.customerName && !newRmaCustomer) {
-                      setNewRmaCustomer(lookup.serial.customerName);
-                      setNewRmaPhone(lookup.serial.customerPhone || '');
-                    }
-                  }}
-                  placeholder="e.g. SN-ROG4080S-87995"
-                  className="w-full px-3 py-2 text-xs font-mono bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white"
-                />
+              <div className="space-y-3">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-slate-800 dark:text-slate-200">
+                      Component Serial Number (S/N)
+                    </label>
+                    <span className="text-[10px] text-slate-500 font-medium">
+                      Optional for Tray CPUs / Bulk
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    value={newRmaSerial}
+                    onChange={(e) => {
+                      const sn = e.target.value.toUpperCase();
+                      setNewRmaSerial(sn);
+                      // auto-fill customer and item if found
+                      const lookup = lookupSerial(sn);
+                      if (lookup.serial?.customerName && !newRmaCustomer) {
+                        setNewRmaCustomer(lookup.serial.customerName);
+                        setNewRmaPhone(lookup.serial.customerPhone || '');
+                      }
+                      if (lookup.item) {
+                        setNewRmaItemId(lookup.item.id);
+                      }
+                    }}
+                    placeholder="e.g. SN-ROG4080S-87995 (or leave blank if Tray CPU)"
+                    className="w-full px-3 py-2 text-xs font-mono bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-800 dark:text-slate-200 mb-1">
+                    Select Hardware Item (Required if no S/N available)
+                  </label>
+                  <select
+                    value={newRmaItemId}
+                    onChange={(e) => setNewRmaItemId(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white"
+                  >
+                    <option value="">-- Choose hardware item from catalog --</option>
+                    {items.map((it) => (
+                      <option key={it.id} value={it.id}>
+                        {it.name} ({it.brand} · {it.category}) {!it.hasSerials ? '— [Tray/Bulk No S/N]' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

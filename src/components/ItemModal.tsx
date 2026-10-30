@@ -114,7 +114,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({
     const parsedStock = parseInt(stock, 10);
     const parsedMinStock = parseInt(minStockAlert, 10);
 
-      const warrantyMonthsNum = hasSerials ? (parseInt(defaultWarrantyMonths, 10) || 12) : undefined;
+      const warrantyMonthsNum = parseInt(defaultWarrantyMonths, 10) || 12;
 
       if (editItem) {
         updateItem(
@@ -413,60 +413,70 @@ export const ItemModal: React.FC<ItemModalProps> = ({
 
           {/* Serial Number & Warranty Policy Section */}
           <div className="p-3.5 rounded-xl bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200/80 dark:border-blue-900/40 space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer select-none">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <label className="flex items-start gap-2.5 cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={hasSerials}
                   onChange={(e) => setHasSerials(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 rounded border-slate-300 dark:border-slate-700 focus:ring-blue-500"
+                  className="w-4 h-4 text-blue-600 rounded border-slate-300 dark:border-slate-700 focus:ring-blue-500 mt-0.5"
                 />
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  Track Individual Unit Serial Numbers (S/N)
-                </span>
+                <div>
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    Track Individual Unit Serial Numbers (S/N) — Optional
+                  </span>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Uncheck for Tray CPUs, bulk accessories, cables, thermal paste, or unboxed units. Check for Boxed CPUs, GPUs, and Motherboards.
+                  </p>
+                </div>
               </label>
-              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                POS barcode scan & RMA
+              <span
+                className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded shrink-0 self-start sm:self-auto ${
+                  hasSerials
+                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300'
+                    : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                }`}
+              >
+                {hasSerials ? 'S/N Enabled' : 'No S/N (Tray / Bulk)'}
               </span>
             </div>
 
-            {hasSerials && (
-              <div className="pl-6 pt-1 flex items-center gap-4">
-                <div className="flex-1">
-                  <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Default Warranty Period (Months)
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      min="0"
-                      max="120"
-                      value={defaultWarrantyMonths}
-                      onChange={(e) => setDefaultWarrantyMonths(e.target.value)}
-                      placeholder="e.g. 24"
-                      className="w-28 px-3 py-1.5 text-xs font-mono tabular-nums bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-                    />
-                    <div className="flex items-center gap-1 text-[11px]">
-                      {[12, 24, 36].map((m) => (
-                        <button
-                          key={m}
-                          type="button"
-                          onClick={() => setDefaultWarrantyMonths(m.toString())}
-                          className={`px-2 py-1 rounded text-[10px] font-medium transition-colors ${
-                            defaultWarrantyMonths === m.toString()
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
-                          }`}
-                        >
-                          {m}m ({m / 12}y)
-                        </button>
-                      ))}
-                    </div>
+            {/* Warranty applies to both boxed and tray/bulk items */}
+            <div className="pt-2 border-t border-blue-200/60 dark:border-blue-900/40 flex flex-wrap items-center gap-4">
+              <div className="flex-1 min-w-[200px]">
+                <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Default Warranty Period (Months)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    max="120"
+                    value={defaultWarrantyMonths}
+                    onChange={(e) => setDefaultWarrantyMonths(e.target.value)}
+                    placeholder="e.g. 12"
+                    className="w-28 px-3 py-1.5 text-xs font-mono tabular-nums bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                  />
+                  <div className="flex items-center gap-1 text-[11px]">
+                    {[6, 12, 24, 36].map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setDefaultWarrantyMonths(m.toString())}
+                        className={`px-2 py-1 rounded text-[10px] font-medium transition-colors ${
+                          defaultWarrantyMonths === m.toString()
+                            ? 'bg-blue-600 text-white font-bold'
+                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                        }`}
+                      >
+                        {m}m
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
-            )}
+            </div>
           </div>
 
           {/* Row 7: Notes */}

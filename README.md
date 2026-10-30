@@ -10,7 +10,7 @@ Ace World Computer is engineered specifically for custom PC builders, hardware r
 
 - **Component Inventory Management:**
   - Track PC components (CPUs, GPUs, Motherboards, RAM, Storage, PSUs, Cases, Cooling, Peripherals, Prebuilts).
-  - Serial number tracking, barcode indexing, and stock level alerts (in-stock, low-stock, out-of-stock).
+  - Optional serial number tracking (enable for Boxed CPUs, GPUs, Motherboards; disable for Tray CPUs, bulk accessories, cables, thermal paste).
   - Quick stock adjustment modal with audit reason tracking (Restock, Damage, Audit Correction, Return).
   - Real-time search and filter by category, brand, supplier, or stock status.
 

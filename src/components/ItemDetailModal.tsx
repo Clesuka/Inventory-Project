@@ -546,6 +546,24 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             {/* Sub-Panel: Serial Numbers & Warranty Center */}
             {activeActionTab === 'serials' && (
               <div className="p-4 bg-white dark:bg-slate-900 space-y-4">
+                {/* Non-Serialized / Tray notice if hasSerials is false */}
+                {!currentItem.hasSerials && (
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex items-start gap-3 text-xs">
+                    <ShieldCheck className="w-5 h-5 text-slate-400 mt-0.5 shrink-0" />
+                    <div className="space-y-1">
+                      <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>Non-Serialized / Tray Component</span>
+                        <span className="px-2 py-0.2 rounded text-[10px] font-mono bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                          S/N Optional
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                        This item does not require individual unit serial numbers (e.g. Tray CPU, bulk accessories, cables, thermal paste). Physical stock ({currentItem.stock} in stock) is tracked by quantity. You can still optionally register serial numbers below if desired.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Serials Overview Cards */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
                   <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-800">
