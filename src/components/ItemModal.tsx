@@ -327,12 +327,28 @@ export const ItemModal: React.FC<ItemModalProps> = ({
           {/* Row 5: Pricing (Cost vs Retail Sell) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3.5 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700/60">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
-                Cost / Buy Price (IDR - Rp.) *
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                  Cost / Buy Price (IDR - Rp.)
+                </label>
+                {buyPrice > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setBuyPrice(0)}
+                    className="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline cursor-pointer"
+                  >
+                    Set to Rp 0
+                  </button>
+                ) : (
+                  <span className="text-[10px] font-mono font-semibold text-slate-400 dark:text-slate-500">
+                    Rp 0 (Zero Cost)
+                  </span>
+                )}
+              </div>
               <CurrencyInput
                 size="md"
                 value={buyPrice}
+                originalValue={editItem ? editItem.buyPrice : undefined}
                 onChange={(val) => setBuyPrice(val)}
                 showHelpers={true}
                 showShortScale={true}
@@ -342,12 +358,28 @@ export const ItemModal: React.FC<ItemModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
-                Retail Selling Price (IDR - Rp.) *
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                  Retail Selling Price (IDR - Rp.)
+                </label>
+                {sellPrice > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setSellPrice(0)}
+                    className="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline cursor-pointer"
+                  >
+                    Set to Rp 0 (Free)
+                  </button>
+                ) : (
+                  <span className="text-[10px] font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+                    Rp 0 (Free / Bonus)
+                  </span>
+                )}
+              </div>
               <CurrencyInput
                 size="md"
                 value={sellPrice}
+                originalValue={editItem ? editItem.sellPrice : undefined}
                 onChange={(val) => setSellPrice(val)}
                 showHelpers={true}
                 showShortScale={true}

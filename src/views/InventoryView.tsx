@@ -450,12 +450,22 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
                       {/* Cost */}
                       <td className="py-3 px-3 text-right font-mono tabular-nums text-slate-500 dark:text-slate-400">
-                        {formatIDR(item.buyPrice)}
+                        {item.buyPrice === 0 ? (
+                          <span className="text-slate-400 font-medium">Rp 0</span>
+                        ) : (
+                          formatIDR(item.buyPrice)
+                        )}
                       </td>
 
                       {/* Retail Price */}
                       <td className="py-3 px-3 text-right font-mono tabular-nums font-bold text-slate-900 dark:text-white">
-                        {formatIDR(item.sellPrice)}
+                        {item.sellPrice === 0 ? (
+                          <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                            Rp 0 <span className="text-[10px] font-sans font-normal opacity-80">(Free)</span>
+                          </span>
+                        ) : (
+                          formatIDR(item.sellPrice)
+                        )}
                       </td>
 
                       {/* Stock Level */}
@@ -629,10 +639,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <div>
                       <div className="text-[10px] uppercase tracking-wider text-slate-400">Retail Price</div>
                       <div className="text-lg font-bold font-mono tabular-nums text-slate-900 dark:text-white">
-                        {formatIDR(item.sellPrice)}
+                        {item.sellPrice === 0 ? (
+                          <span className="text-emerald-600 dark:text-emerald-400">Rp 0 (Free)</span>
+                        ) : (
+                          formatIDR(item.sellPrice)
+                        )}
                       </div>
                       <div className="text-[10px] text-slate-400 font-mono">
-                        Cost: {formatIDR(item.buyPrice)}
+                        Cost: {item.buyPrice === 0 ? 'Rp 0' : formatIDR(item.buyPrice)}
                       </div>
                     </div>
 

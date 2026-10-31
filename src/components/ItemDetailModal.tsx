@@ -420,34 +420,78 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
           {/* Section 2: Financials & Stock Inventory Status */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {/* Retail Price */}
-            <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-              <div className="flex items-center justify-between text-slate-400 text-[11px] uppercase tracking-wider font-medium">
-                <span>Retail Price</span>
-                <DollarSign className="w-4 h-4 text-emerald-500" />
+            <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between text-slate-400 text-[11px] uppercase tracking-wider font-medium">
+                  <span>Retail Price</span>
+                  <DollarSign className="w-4 h-4 text-emerald-500" />
+                </div>
+                <div className="text-xl font-bold font-mono text-slate-900 dark:text-white mt-1 tabular-nums">
+                  {currentItem.sellPrice === 0 ? (
+                    <span className="text-emerald-600 dark:text-emerald-400">Rp 0</span>
+                  ) : (
+                    formatIDR(currentItem.sellPrice)
+                  )}
+                </div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                  {currentItem.sellPrice === 0 ? 'Complimentary / Free Promotion / Rp 0' : 'Selling price configured for POS register'}
+                </div>
               </div>
-              <div className="text-xl font-bold font-mono text-slate-900 dark:text-white mt-1 tabular-nums">
-                {formatIDR(currentItem.sellPrice)}
-              </div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                Selling price configured for POS register
-              </div>
+              {onEditItem && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onEditItem(currentItem);
+                  }}
+                  className="mt-2.5 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1 cursor-pointer"
+                >
+                  <Edit2 className="w-3 h-3" />
+                  <span>Edit Retail Price</span>
+                </button>
+              )}
             </div>
 
             {/* Cost & Profit Margin */}
-            <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-              <div className="flex items-center justify-between text-slate-400 text-[11px] uppercase tracking-wider font-medium">
-                <span>Cost Price</span>
-                <TrendingUp className="w-4 h-4 text-blue-500" />
+            <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between text-slate-400 text-[11px] uppercase tracking-wider font-medium">
+                  <span>Cost Price</span>
+                  <TrendingUp className="w-4 h-4 text-blue-500" />
+                </div>
+                <div className="text-xl font-bold font-mono text-slate-900 dark:text-white mt-1 tabular-nums">
+                  {currentItem.buyPrice === 0 ? (
+                    <span className="text-slate-600 dark:text-slate-400">Rp 0</span>
+                  ) : (
+                    formatIDR(currentItem.buyPrice)
+                  )}
+                </div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
+                  {currentItem.buyPrice === 0 ? (
+                    <span className="text-slate-500 font-mono">Zero cost intake / promo</span>
+                  ) : (
+                    <>
+                      <span>Margin:</span>
+                      <span className="font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
+                        +{profitMarginPercent}% ({formatIDR(profitMarginRp)})
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
-              <div className="text-xl font-bold font-mono text-slate-900 dark:text-white mt-1 tabular-nums">
-                {formatIDR(currentItem.buyPrice)}
-              </div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
-                <span>Margin:</span>
-                <span className="font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
-                  +{profitMarginPercent}% ({formatIDR(profitMarginRp)})
-                </span>
-              </div>
+              {onEditItem && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onEditItem(currentItem);
+                  }}
+                  className="mt-2.5 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1 cursor-pointer"
+                >
+                  <Edit2 className="w-3 h-3" />
+                  <span>Edit Cost Price</span>
+                </button>
+              )}
             </div>
 
             {/* Stock Count */}
