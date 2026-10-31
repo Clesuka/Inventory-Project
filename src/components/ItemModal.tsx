@@ -92,8 +92,8 @@ export const ItemModal: React.FC<ItemModalProps> = ({
     if (!color.trim()) errs.color = 'Color is required';
     if (!sku.trim()) errs.sku = 'SKU / Barcode is required';
 
-    if (buyPrice <= 0) errs.buyPrice = 'Valid cost price is required';
-    if (sellPrice <= 0) errs.sellPrice = 'Valid retail selling price is required';
+    if (buyPrice < 0) errs.buyPrice = 'Cost price cannot be negative';
+    if (sellPrice < 0) errs.sellPrice = 'Retail selling price cannot be negative';
 
     const numStock = parseInt(stock, 10);
     if (isNaN(numStock) || numStock < 0) errs.stock = 'Stock must be 0 or greater';
@@ -355,12 +355,19 @@ export const ItemModal: React.FC<ItemModalProps> = ({
               />
               {errors.sellPrice && <p className="text-[11px] text-rose-500 mt-1">{errors.sellPrice}</p>}
               
-              {buyPrice > 0 && sellPrice > 0 && (
+              {sellPrice > 0 ? (
                 <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 flex justify-between font-mono">
                   <span>Gross Margin:</span>
                   <span className={`font-semibold ${sellPrice >= buyPrice ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'}`}>
                     {formatIDR(sellPrice - buyPrice)} (
                     {(((sellPrice - buyPrice) / sellPrice) * 100).toFixed(1)}%)
+                  </span>
+                </div>
+              ) : (
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 flex justify-between font-mono">
+                  <span>Pricing Status:</span>
+                  <span className="font-semibold text-blue-600 dark:text-blue-400">
+                    Rp 0 (Bonus / Free Gift / Uncosted)
                   </span>
                 </div>
               )}

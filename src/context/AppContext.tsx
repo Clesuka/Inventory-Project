@@ -303,6 +303,33 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   });
 
+  // One-time cleanup of legacy demo seed data from browser localStorage
+  useEffect(() => {
+    try {
+      const legacySales = localStorage.getItem(STORAGE_KEYS.SALES);
+      if (legacySales && (legacySales.includes('sale-8819') || legacySales.includes('sale-8821'))) {
+        localStorage.removeItem(STORAGE_KEYS.SALES);
+        setSales([]);
+      }
+      const legacyRmas = localStorage.getItem(STORAGE_KEYS.RMAS);
+      if (legacyRmas && (legacyRmas.includes('rma-101') || legacyRmas.includes('rma-102'))) {
+        localStorage.removeItem(STORAGE_KEYS.RMAS);
+        setRmas([]);
+      }
+      const legacyLogs = localStorage.getItem(STORAGE_KEYS.LOGS);
+      if (legacyLogs && (legacyLogs.includes('log-101') || legacyLogs.includes('log-102'))) {
+        localStorage.removeItem(STORAGE_KEYS.LOGS);
+        setAuditLogs([]);
+      }
+      const legacyItems = localStorage.getItem(STORAGE_KEYS.ITEMS);
+      if (legacyItems && legacyItems.includes('item-gpu-1')) {
+        localStorage.removeItem(STORAGE_KEYS.ITEMS);
+      }
+    } catch {
+      // Ignore
+    }
+  }, []);
+
   // Storage sync
   useEffect(() => {
     try {
@@ -1895,10 +1922,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     SEED_ACCOUNTS.forEach((a) => syncDoc('users', a.id, a));
     DEFAULT_CATEGORIES.forEach((c) => syncDoc('categories', c, { id: c, name: c }));
-    SEED_ITEMS.forEach((i) => syncDoc('items', i.id, i));
-    SEED_SALES.forEach((s) => syncDoc('sales', s.id, s));
-    SEED_RMAS.forEach((r) => syncDoc('rmas', r.id, r));
-    SEED_LOGS.forEach((l) => syncDoc('logs', l.id, l));
   };
 
   const exportDataJson = () => {

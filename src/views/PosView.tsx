@@ -289,12 +289,12 @@ export const PosView: React.FC<PosViewProps> = ({
     if (cart.length === 0) return 0;
 
     if (isSingleItem && cart[0]) {
-      const unit = isPriceCustomized && singleItemPriceOverride > 0
+      const unit = isPriceCustomized && singleItemPriceOverride !== undefined && singleItemPriceOverride >= 0
         ? singleItemPriceOverride
         : cart[0].item.sellPrice;
       return Math.round(unit * cart[0].quantity);
     } else if (isMultiItem) {
-      return isPriceCustomized && multiItemTotalOverride > 0
+      return isPriceCustomized && multiItemTotalOverride !== undefined && multiItemTotalOverride >= 0
         ? Math.round(multiItemTotalOverride)
         : Math.round(catalogSubtotal);
     }
@@ -351,7 +351,7 @@ export const PosView: React.FC<PosViewProps> = ({
 
     // Prepare items to process with customized prices and selected serials
     const itemsToProcess = cart.map((ci) => {
-      const activeUnit = isSingleItem && isPriceCustomized && singleItemPriceOverride > 0
+      const activeUnit = isSingleItem && isPriceCustomized && singleItemPriceOverride !== undefined && singleItemPriceOverride >= 0
         ? singleItemPriceOverride
         : ci.item.sellPrice;
       return {
