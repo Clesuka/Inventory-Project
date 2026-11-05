@@ -961,7 +961,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       { field: 'sellPrice', from: 0, to: newItem.sellPrice },
       { field: 'stock', from: 0, to: newItem.stock },
       { field: 'size', from: '', to: newItem.size },
-      { field: 'color', from: '', to: newItem.color },
+      { field: 'color', from: '', to: newItem.color || '' },
     ];
 
     const log: AuditLog = {
@@ -1970,7 +1970,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       `"${item.brand.replace(/"/g, '""')}"`,
       `"${item.category}"`,
       `"${item.size.replace(/"/g, '""')}"`,
-      `"${item.color.replace(/"/g, '""')}"`,
+      `"${(item.color || '').replace(/"/g, '""')}"`,
       item.buyPrice.toFixed(2),
       item.sellPrice.toFixed(2),
       item.stock,

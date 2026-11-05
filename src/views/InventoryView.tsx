@@ -78,7 +78,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           const matchBrand = item.brand.toLowerCase().includes(q);
           const matchSku = item.sku.toLowerCase().includes(q);
           const matchSize = item.size.toLowerCase().includes(q);
-          const matchColor = item.color.toLowerCase().includes(q);
+          const matchColor = item.color ? item.color.toLowerCase().includes(q) : false;
           const matchLocation = item.location?.toLowerCase().includes(q);
           if (!matchName && !matchBrand && !matchSku && !matchSize && !matchColor && !matchLocation) {
             return false;
@@ -431,8 +431,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           <span>{item.sku}</span>
                           <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">·</span>
                           <span className="font-sans font-medium text-slate-700 dark:text-slate-300">{item.brand}</span>
-                          <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">·</span>
-                          <span className="font-sans text-slate-500">{item.color}</span>
+                          {item.category?.trim().toUpperCase() !== 'CPU' && item.color && item.color !== '-' && (
+                            <>
+                              <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">·</span>
+                              <span className="font-sans text-slate-500">{item.color}</span>
+                            </>
+                          )}
                         </div>
                       </td>
 
@@ -624,8 +628,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <span className="font-medium text-slate-700 dark:text-slate-300">{item.brand}</span>
                     <span aria-hidden="true">·</span>
                     <span>{item.size}</span>
-                    <span aria-hidden="true">·</span>
-                    <span>{item.color}</span>
+                    {item.category?.trim().toUpperCase() !== 'CPU' && item.color && item.color !== '-' && (
+                      <>
+                        <span aria-hidden="true">·</span>
+                        <span>{item.color}</span>
+                      </>
+                    )}
                   </div>
 
                   {item.notes && (

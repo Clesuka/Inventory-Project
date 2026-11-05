@@ -60,7 +60,7 @@ export interface Item {
   brand: string;
   category: ItemCategory;
   size: string; // Form factor / dimensions / capacity
-  color: string;
+  color?: string;
   sku: string;
   buyPrice: number; // Cost price
   sellPrice: number; // Selling retail price

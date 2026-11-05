@@ -385,37 +385,46 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
         {/* Scrollable Modal Body */}
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
           {/* Section 1: Comprehensive Item Specifications */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50/80 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800">
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-slate-400 font-medium">Manufacturer</div>
-              <div className="text-sm font-semibold text-slate-900 dark:text-white mt-0.5 flex items-center gap-1.5">
-                <Tag className="w-3.5 h-3.5 text-blue-500" />
-                <span>{currentItem.brand}</span>
-              </div>
-            </div>
+          {(() => {
+            const isCpu = currentItem.category?.trim().toUpperCase() === 'CPU';
+            return (
+              <div className={`grid grid-cols-2 ${isCpu ? 'sm:grid-cols-3' : 'sm:grid-cols-4'} gap-3 bg-slate-50/80 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800`}>
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-slate-400 font-medium">Manufacturer</div>
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white mt-0.5 flex items-center gap-1.5">
+                    <Tag className="w-3.5 h-3.5 text-blue-500" />
+                    <span>{currentItem.brand}</span>
+                  </div>
+                </div>
 
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-slate-400 font-medium">Specs / Form Factor</div>
-              <div className="text-sm font-semibold text-slate-900 dark:text-white mt-0.5">
-                {currentItem.size || 'Standard'}
-              </div>
-            </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-slate-400 font-medium">
+                    {isCpu ? 'Socket / Specs' : 'Specs / Form Factor'}
+                  </div>
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white mt-0.5">
+                    {currentItem.size || 'Standard'}
+                  </div>
+                </div>
 
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-slate-400 font-medium">Variant / Color</div>
-              <div className="text-sm font-semibold text-slate-900 dark:text-white mt-0.5">
-                {currentItem.color || 'Default'}
-              </div>
-            </div>
+                {!isCpu && (
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wider text-slate-400 font-medium">Variant / Color</div>
+                    <div className="text-sm font-semibold text-slate-900 dark:text-white mt-0.5">
+                      {currentItem.color || 'Default'}
+                    </div>
+                  </div>
+                )}
 
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-slate-400 font-medium">Bin / Warehouse Shelf</div>
-              <div className="text-sm font-semibold text-slate-900 dark:text-white mt-0.5 flex items-center gap-1 font-mono">
-                <MapPin className="w-3.5 h-3.5 text-emerald-500" />
-                <span>{currentItem.location || 'Main Floor'}</span>
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-slate-400 font-medium">Bin / Warehouse Shelf</div>
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white mt-0.5 flex items-center gap-1 font-mono">
+                    <MapPin className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>{currentItem.location || 'Main Floor'}</span>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            );
+          })()}
 
           {/* Section 2: Financials & Stock Inventory Status */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

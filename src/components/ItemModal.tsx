@@ -37,13 +37,15 @@ export const ItemModal: React.FC<ItemModalProps> = ({
   const [editReason, setEditReason] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const isCpu = category.trim().toUpperCase() === 'CPU';
+
   useEffect(() => {
     if (editItem) {
       setName(editItem.name);
       setBrand(editItem.brand);
       setCategory(editItem.category);
       setSize(editItem.size);
-      setColor(editItem.color);
+      setColor(editItem.color || '');
       setSku(editItem.sku);
       setBuyPrice(editItem.buyPrice);
       setSellPrice(editItem.sellPrice);
@@ -88,8 +90,8 @@ export const ItemModal: React.FC<ItemModalProps> = ({
     const errs: Record<string, string> = {};
     if (!name.trim()) errs.name = 'Item name is required';
     if (!brand.trim()) errs.brand = 'Brand manufacturer is required';
-    if (!size.trim()) errs.size = 'Size or form factor is required (e.g. ATX, 320mm, 2TB)';
-    if (!color.trim()) errs.color = 'Color is required';
+    if (!size.trim()) errs.size = isCpu ? 'Socket / core spec is required (e.g. Socket AM5, LGA1700)' : 'Size or form factor is required (e.g. ATX, 320mm, 2TB)';
+    if (!isCpu && !color.trim()) errs.color = 'Color is required';
     if (!sku.trim()) errs.sku = 'SKU / Barcode is required';
 
     if (buyPrice < 0) errs.buyPrice = 'Cost price cannot be negative';
@@ -124,7 +126,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({
             brand: brand.trim(),
             category,
             size: size.trim(),
-            color: color.trim(),
+            color: isCpu ? '' : color.trim(),
             sku: sku.trim(),
             buyPrice: parsedBuy,
             sellPrice: parsedSell,
@@ -143,7 +145,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({
           brand: brand.trim(),
           category,
           size: size.trim(),
-          color: color.trim(),
+          color: isCpu ? '' : color.trim(),
           sku: sku.trim(),
           buyPrice: parsedBuy,
           sellPrice: parsedSell,
@@ -203,7 +205,18 @@ export const ItemModal: React.FC<ItemModalProps> = ({
               </div>
               <select
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                onChange={(e) => {
+                  const newCat = e.target.value;
+                  setCategory(newCat);
+                  if (newCat.trim().toUpperCase() === 'CPU') {
+                    setColor('');
+                    setErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.color;
+                      return next;
+                    });
+                  }
+                }}
                 className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 {/* Ensure editItem category is included even if archived */}
@@ -256,15 +269,15 @@ export const ItemModal: React.FC<ItemModalProps> = ({
             {errors.name && <p className="text-[11px] text-rose-500 mt-1">{errors.name}</p>}
           </div>
 
-          {/* Row 3: Size/Form Factor & Color */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Row 3: Size/Form Factor & Color (Color hidden for CPU) */}
+          <div className={`grid grid-cols-1 ${isCpu ? '' : 'sm:grid-cols-2'} gap-4`}>
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
-                Size / Form Factor / Spec *
+                {isCpu ? 'Socket / Core Specs *' : 'Size / Form Factor / Spec *'}
               </label>
               <input
                 type="text"
-                placeholder="e.g. Triple-Fan 357mm, ATX, 2x16GB, M.2 2280"
+                placeholder={isCpu ? 'e.g. Socket AM5, LGA1700 (8C / 16T)' : 'e.g. Triple-Fan 357mm, ATX, 2x16GB, M.2 2280'}
                 value={size}
                 onChange={(e) => setSize(e.target.value)}
                 className={`w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 border rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 ${
@@ -276,23 +289,25 @@ export const ItemModal: React.FC<ItemModalProps> = ({
               {errors.size && <p className="text-[11px] text-rose-500 mt-1">{errors.size}</p>}
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
-                Color / Finish *
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. Stealth Black, Pure White, Gunmetal"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                className={`w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 border rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 ${
-                  errors.color
-                    ? 'border-rose-500 dark:border-rose-500'
-                    : 'border-slate-300 dark:border-slate-700'
-                }`}
-              />
-              {errors.color && <p className="text-[11px] text-rose-500 mt-1">{errors.color}</p>}
-            </div>
+            {!isCpu && (
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                  Color / Finish *
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Stealth Black, Pure White, Gunmetal"
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  className={`w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 border rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 ${
+                    errors.color
+                      ? 'border-rose-500 dark:border-rose-500'
+                      : 'border-slate-300 dark:border-slate-700'
+                  }`}
+                />
+                {errors.color && <p className="text-[11px] text-rose-500 mt-1">{errors.color}</p>}
+              </div>
+            )}
           </div>
 
           {/* Row 4: SKU with Auto-generate */}
