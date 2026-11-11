@@ -1,6 +1,6 @@
 {
-  "summary":  "Revised implementation plan for Shop Assets & Tools. Now incorporates the ability to sell shop inventory items if the shop decides to sell them, providing a 'Sell Asset' workflow (direct sale with customer/price tracking or send to POS for official receipt generation), transitioning status to SOLD, and maintaining full lifecycle financial accounting.",
-  "updatedAt":  "2026-11-11T12:50:17.136712274Z",
+  "summary":  "Implementation plan to replace the category dropdown in Shop Assets & Tools with horizontal scrolling category tabs and count badges matching the Inventory screen layout.",
+  "updatedAt":  "2026-11-11T13:29:43.510786049Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

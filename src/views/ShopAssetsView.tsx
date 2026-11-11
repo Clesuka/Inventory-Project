@@ -88,7 +88,7 @@ export const ShopAssetsView: React.FC<ShopAssetsViewProps> = ({ onSendToPos }) =
       }
 
       // Category
-      if (selectedCategory !== 'All' && asset.category !== selectedCategory) {
+      if (selectedCategory !== 'All' && (asset.category || '').toLowerCase() !== selectedCategory.toLowerCase()) {
         return false;
       }
 
@@ -348,37 +348,23 @@ export const ShopAssetsView: React.FC<ShopAssetsViewProps> = ({ onSendToPos }) =
       </div>
 
       {/* 3. Search & Filter Bar */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 space-y-3 shadow-xs">
         
-        {/* Search Input */}
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-          <input
-            type="text"
-            placeholder="Search by name, brand, model, asset tag, serial, or location..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        {/* Filters & View Toggle */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Category Filter */}
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-blue-500 cursor-pointer"
-          >
-            {CATEGORIES.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat === 'All' ? 'All Categories' : cat}
-              </option>
-            ))}
-          </select>
+        {/* Search Input & View Toggle */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              placeholder="Search by name, brand, model, asset tag, serial, or location..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
 
           {/* View Mode Toggle */}
-          <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center self-end sm:self-auto bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
             <button
               type="button"
               onClick={() => setViewMode('grid')}
@@ -405,6 +391,39 @@ export const ShopAssetsView: React.FC<ShopAssetsViewProps> = ({ onSendToPos }) =
             </button>
           </div>
         </div>
+
+        {/* Category Horizontal Scrolling Tabs */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-0.5 no-scrollbar border-t border-slate-100 dark:border-slate-800/80">
+          {CATEGORIES.map((cat) => {
+            const isSelected = selectedCategory.toLowerCase() === cat.toLowerCase();
+            const count =
+              cat === 'All'
+                ? shopAssets.length
+                : shopAssets.filter((a) => (a.category || '').toLowerCase() === cat.toLowerCase()).length;
+            return (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors flex items-center gap-1.5 cursor-pointer ${
+                  isSelected
+                    ? 'bg-blue-600 text-white font-semibold shadow-xs'
+                    : 'bg-slate-100/80 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <span>{cat}</span>
+                <span
+                  className={`text-[10px] font-mono px-1 rounded-sm ${
+                    isSelected ? 'bg-blue-700 text-white' : 'text-slate-400 dark:text-slate-500'
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
       </div>
 
       {/* 4. Content Body */}
