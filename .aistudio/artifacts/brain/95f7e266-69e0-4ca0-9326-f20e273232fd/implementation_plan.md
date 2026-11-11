@@ -1,162 +1,223 @@
-# Comprehensive POS Application Audit & Implementation Plan
+# Shop Assets & Tools Tracking Management (with Sell Option)
 
-## Executive Summary
+Add an internal equipment, diagnostic tool, and workshop gear tracking system to **Ace World Computer**, allowing staff to catalog shop inventory items (e.g. Orico SATA cloner dock, test bench, microscope, multimeters), monitor operational statuses (*Active, In Use, On Service, Broken, Standby, Sold*), pinpoint workshop locations, maintain condition notes, and **easily sell or liquidate any shop asset if the shop decides to sell it**.
 
-This document presents a comprehensive review of the Computer Hardware & Electronics Point-of-Sale (POS) and Inventory Management System. It evaluates the current implementation against retail store requirements (particularly high-value electronics and PC hardware sales), details architectural strengths, security postures, and critical operational gaps, and provides an actionable phased roadmap focusing on **Per-Item Serial Number (S/N) & Warranty RMA Tracking**.
+## User Review & Critical Decisions
 
----
+> [!IMPORTANT]
+> The following user preferences were confirmed and refined during planning:
+> - **Navigation Location**: Dedicated tab in the primary sidebar navigation.
+> - **Section Label**: `Shop Assets & Tools` (icon: `Wrench` / hardware tool).
+> - **Tracking Depth**: Asset status, workshop location, model/specs, condition notes.
+> - **Sellable Shop Inventory Option (NEW)**: If the shop decides to sell an internal asset (e.g., selling used test equipment, surplus tools, or a customer wishing to purchase a workshop cloner dock), staff can execute a "Sell Asset" workflow to record the sale or dispatch it to the POS checkout.
 
-## 1. POS Application Audit: Strengths, Flaws & Gap Analysis
-
-### A. Architectural & Data Integrity
-
-#### Strengths (Pros)
-- **Strongly Typed Domain Schema**: Well-defined TypeScript interfaces (`Item`, `SaleRecord`, `AuditLog`, `UserAccount`) ensuring predictable state transitions.
-- **Granular Audit Logging Engine**: Comprehensive diff engine tracking item creation, editing, stock manual adjustments, price overrides, category mutations, and user account actions.
-- **Role-Based Access Control (RBAC)**: Clear demarcation between `Admin` (full access, catalog manipulation, user management, audit logs) and `Staff` (sales register, inventory lookup, quick-sell).
-- **Format Integrity**: Auto-formatting for Indonesian Rupiah (IDR) with currency validation minimizing numeric typos during checkouts and stock adjustments.
-
-#### Architectural Flaws & Vulnerabilities (Cons)
-- **Aggregate Quantity Flaw (Critical for Electronics)**:
-  - *Current Reality*: Items are tracked solely as scalar integers (`stock: number`).
-  - *The Retail Risk*: In computer retail (GPUs, CPUs, Motherboards, Laptops), each physical box carries a unique manufacturer serial number (S/N). Currently, the system has no concept of unique physical units. A customer could buy an RTX 4080, swap it with a burned-out or counterfeit unit, and return it because the store has no recorded serial number on the invoice or warranty database.
-- **Ephemeral Client-Side Persistence**:
-  - The application stores data exclusively in browser `localStorage`. Clearing browser cache or switching devices wipes the store catalog and sales records. While adequate for offline-first standalone terminals, it lacks cloud synchronization or multi-register consensus.
-- **Race Condition Vulnerability in Cart Reservations**:
-  - When an item with `stock = 1` is placed in the cart, it is not reserved or locked. If multiple cashiers or browser tabs were operating simultaneously, double-selling could occur.
+- **Confirmed Decision 1**: Store tools and gear in a dedicated `/shop_assets` Firestore collection with full operational tracking (*Active*, *In Use*, *On Service*, *Broken*, *Standby*, *Sold*).
+- **Confirmed Decision 2**: Provide a dedicated **"Sell Asset"** option on every shop inventory item:
+  - **Direct Equipment Sale**: Record Sale Price (IDR), Date, Customer Name/Phone, and Payment Method directly from the Asset card/detail modal, transitioning status to `SOLD`.
+  - **Dispatch to POS**: Option to push the shop asset into the POS register as a line item to print/download an official Ace World Computer receipt for the buyer.
+- **Confirmed Decision 3**: Comprehensive financial & audit provenance: Keep track of initial purchase cost vs. final sale price, calculating asset depreciation or recovery value, logged under the acting technician's audit trail.
 
 ---
 
-### B. Retail Checkout & User Experience (UX)
+## 1. Overview & Core Concept
 
-#### Strengths (Pros)
-- **Dual Flow Quick-Sell**: Cashiers can initiate a sale either from the catalog grid in `PosView` or via the "Quick Sell" shortcut in the `ItemDetailModal`.
-- **Flexible Pricing with Mandatory Audit Reasons**: Cashiers can apply single-item discounts or order-level total overrides, but the system strictly forces a reason note and logs the financial variance.
-- **Modern Responsive Design**: Dark and Light theme toggles, clean collapsible navigation, and instant search by name, brand, SKU, and category.
-- **Printable Thermal-Style Receipts**: Formatted receipt modal with receipt number, cashier details, itemization, payment method, and printable layout.
+### What It Does
+Provides an internal inventory and workshop management system for workshop equipment, repair tools, and diagnostic gear. While primarily utilized for internal repair operations, it provides full flexibility for the shop to sell any shop asset at any time.
 
-#### UX Flaws & Operational Deficiencies (Cons)
-- **Zero RMA & Return Workflow**:
-  - Currently, once a sale is committed, it cannot be refunded, exchanged, or returned. There is no workflow to handle defective goods, warranty repairs, or restocking.
-- **Missing Warranty Expiration & Terms**:
-  - Hardware components carry 1-year to 5-year warranties. Current receipts display no warranty end-date or warranty status, forcing cashiers to manually write on physical paper.
-- **No Direct Barcode / S/N Scanner Intake**:
-  - Search fields require typing and manual selection. Standard retail 2D/1D barcode scanners transmit serials terminated by a newline/Enter key, which in web forms can accidentally trigger default form submit buttons if unhandled.
-- **Lack of Cash Drawer & Shift Reconciliation**:
-  - No register shift open/close (Float counting, Cash Drops, End-of-Day X/Z Reports). Cashiers cannot balance their physical cash drawer against recorded cash sales at shift change.
-- **Customer Information Not Linked to Customer History**:
-  - Customer name and phone are stored as plain strings per sale record, preventing customer purchase history lookup, repeat loyalty, or warranty claim lookups by phone number.
+### Target Audience & Persona
+- **Shop Technicians & Bench Engineers**: Need to quickly find where a specific tool is located (*e.g. SATA cloner on Bench 2*), check if test equipment is working or under service, and update condition notes.
+- **Store Managers & Admins**: Need an overview of store capital assets, monitor repair statuses, and manage equipment sales when surplus gear is sold to customers or liquidators.
+
+### Key Value
+- **Zero Lost Tools**: Every shop tool has a designated home/bench location and tracked status.
+- **Clear Maintenance Visibility**: Equipment marked as *Broken* or *On Service* is immediately visible to avoid technicians using compromised tools.
+- **Flexible Equipment Liquidation**: If a customer wants to buy shop equipment or the shop upgrades its lab gear, the item can be sold with full receipts and revenue tracking without breaking retail stock counts.
 
 ---
 
-### C. Feature Comparison Matrix
+## 2. User Experience & Visual Design
 
-| Capability | Current State | Industry Standard Retail POS | Severity / Priority |
-| :--- | :--- | :--- | :--- |
-| **Serial Number (S/N) Tracking** | ❌ None (Aggregate count only) | Unique S/N per unit with status (`In Stock`, `Sold`, `RMA`) | **Critical (P0)** |
-| **Warranty & RMA Management** | ❌ None | S/N warranty check, return claims, vendor replacement | **Critical (P0)** |
-| **Sales & Price Overrides** | ✅ Supported with audit diffs | Manager override authorization, discount codes | Good |
-| **Payment Options** | ✅ Cash, QRIS, Bank Transfer | Split payments, card terminals, digital wallets | Minor (P2) |
-| **Return / Refund Flow** | ❌ Not available | Full/partial refunds with stock restoration | **High (P1)** |
-| **Shift / Cash Drawer Control** | ❌ Not available | Shift start float, mid-day drops, X/Z report | Medium (P2) |
-| **Receipt Customization** | ✅ Clean modal | Serial number printing, barcode, warranty policy | **High (P1)** |
+### Key User Flows
+
+```
+[Sidebar Navigation: "Shop Assets & Tools"]
+                   │
+                   ▼
+       ┌───────────────────────┐
+       │ Shop Assets Dashboard │
+       └───────────┬───────────┘
+                   │
+    ┌──────────────┴──────────────────────────┐
+    ▼                                         ▼
+[KPI Summary Strip]                   [Search & Filter Bar]
+- Total Shop Assets                   - Keyword search (name, brand, model, tag)
+- Active & Ready                      - Status filter (Active, In Use, On Service, Broken, Sold)
+- On Service / Repair                 - Category filter (Diagnostics, Storage, Optics, etc.)
+- Sold / Liquidated Assets            - View toggle (Detailed Cards / Dense Table)
+    │                                         │
+    └──────────────────┬──────────────────────┘
+                       ▼
+       ┌───────────────────────────────┐
+       │   Asset Grid or Table View    │
+       │ - Name & Model (e.g. Orico)   │
+       │ - Category & Brand            │
+       │ - Status Badge with Color     │
+       │ - Workshop Location Pin       │
+       │ - Condition / Notes           │
+       │ - Actions: Edit, Status, SELL │
+       └───────────────┬───────────────┘
+                       │
+       ┌───────────────┼──────────────────────────────┐
+       ▼               ▼                              ▼
+[Quick Status]   [Asset Details Modal]          ["Sell Asset" Modal]
+- Active         - Full specs, location, notes  - Selling Price (Rp)
+- In Use         - Historical provenance        - Customer Name & Phone
+- On Service     - Direct "Sell Asset" button   - Choice: Direct Sell or
+- Broken                                          Send to POS Register
+```
+
+### Visual Identity & Theme
+- **Theme Consistency**: Matches Ace World Computer's dark/light slate palette with Tailwind CSS (`bg-slate-50 dark:bg-slate-950`, clean border lines `border-slate-200 dark:border-slate-800`).
+- **Semantic Status Badges**:
+  - `ACTIVE` (Emerald): Fully operational and ready for use in the shop.
+  - `IN_USE` (Blue): Currently active on a test bench or repair job.
+  - `ON_SERVICE` (Amber): Sent for warranty repair or internal maintenance.
+  - `BROKEN` (Rose): Non-functional, needs immediate repair or replacement.
+  - `STANDBY` (Slate): Stored in reserve cabinet / backup.
+  - `SOLD` (Purple): Decommissioned from the workshop and sold to a customer.
+- **Zero-Pill Typography Discipline**: Card headers and table rows present clean typography with unboxed specs (`Brand · Model · Location · Serial`) rather than cluttered pill sandwiches.
+- **Tabular Figures**: Asset counts, model numbers, dates, sale prices, and asset tags use monospace tabular figures (`font-mono tabular-nums`).
 
 ---
 
-## 2. Priority Implementation Plan: Per-Item Serial Number & Warranty RMA Tracking
+## 3. Key Product Decisions & Trade-Offs
 
-In accordance with your selected priority, we will implement full unit-level **Serial Number (S/N) and Warranty RMA Tracking**.
+| Decision | Chosen Approach | Why | Alternatives Considered |
+|---|---|---|---|
+| **Sell Shop Inventory Feature** | Dual selling option: Direct Sale modal or dispatch to POS register | Allows instant in-place recording of tool sales OR generating a full downloadable store receipt via POS with customer details. | Only allowing POS sales (too rigid if selling wholesale or without printer) or only status toggle (misses price & customer record). |
+| **Data Storage Architecture** | Dedicated Firestore collection `/shop_assets` | Complete isolation from sellable retail stock until the shop explicitly chooses to sell it. Prevents asset clutter in retail catalog. | Storing inside `items` with a `isShopAsset: boolean` flag (rejected: risks POS accidents and complicates retail inventory counts). |
+| **Status Vocabulary** | 6 standardized statuses: `ACTIVE`, `IN_USE`, `ON_SERVICE`, `BROKEN`, `STANDBY`, `SOLD` | Direct match for the user's explicit request with complete lifecycle from shop acquisition to sale/liquidation. | Free-text status (rejected: cannot be reliably filtered or counted). |
+| **Asset Identification** | Auto-generated Tag ID (`AST-xxxx`) + optional Manufacturer S/N | Allows tagging unbranded or tray workshop tools (like SATA docks or hand tools) that lack serial numbers while still tracking serials for high-end instruments (like microscopes). | Mandatory manufacturer serial (rejected: many shop accessories have no serial number). |
 
-### Proposed Architecture & Data Models
+---
 
-#### 1. Serial Number Entity (`ItemSerialNumber`)
+## 4. Technical Architecture & Data Strategy
+
+### System Layout & Component Hierarchy
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                         App.tsx                             │
+│ ┌──────────────────────┐   ┌──────────────────────────────┐ │
+│ │     Sidebar.tsx      │   │          Header.tsx          │ │
+│ │  + Shop Assets &     │   │  + Breadcrumb & Theme Toggle │ │
+│ │    Tools Nav Item    │   └──────────────────────────────┘ │
+│ └──────────────────────┘   ┌──────────────────────────────┐ │
+│                            │      ShopAssetsView.tsx      │ │
+│                            │ ┌──────────────────────────┐ │ │
+│                            │ │   Asset Metrics Strip    │ │ │
+│                            │ └──────────────────────────┘ │ │
+│                            │ ┌──────────────────────────┐ │ │
+│                            │ │ Search, Filter & Toggle  │ │ │
+│                            │ └──────────────────────────┘ │ │
+│                            │ ┌──────────────────────────┐ │ │
+│                            │ │ Asset Grid & Table List  │ │ │
+│                            │ │ [Sell Asset Button]      │ │ │
+│                            │ └──────────────────────────┘ │ │
+│                            └──────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                               ▲
+                               │ CRUD & onSnapshot
+┌─────────────────────────────────────────────────────────────┐
+│                    AppContext.tsx                           │
+│  - shopAssets: ShopAsset[]                                  │
+│  - addShopAsset(data)                                       │
+│  - updateShopAsset(id, data, reason)                        │
+│  - updateAssetStatus(id, newStatus, note)                   │
+│  - sellShopAsset(id, saleInfo)                              │
+│  - deleteShopAsset(id)                                      │
+└─────────────────────────────────────────────────────────────┘
+                               ▲
+                               │
+┌─────────────────────────────────────────────────────────────┐
+│               Firestore: /shop_assets                       │
+│  ai-studio-rigforgepcinvent-95f7e266-69e0-4ca0-9326-f20e... │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Data Model (`ShopAsset`)
+
 ```typescript
-export type SerialStatus = 'IN_STOCK' | 'SOLD' | 'RMA_PENDING' | 'DEFECTIVE' | 'RETURNED';
+export type ShopAssetStatus =
+  | 'ACTIVE'
+  | 'IN_USE'
+  | 'ON_SERVICE'
+  | 'BROKEN'
+  | 'STANDBY'
+  | 'SOLD'
+  | 'DECOMMISSIONED';
 
-export interface ItemSerialNumber {
-  id: string;
-  itemId: string;
-  serialNumber: string; // e.g. "SN-RTX4080-994821"
-  status: SerialStatus;
-  warrantyMonths: number; // e.g. 24 or 36 months
-  purchaseDate: string; // Received in inventory
-  soldDate?: string;
-  warrantyExpiryDate?: string; // Auto-computed: soldDate + warrantyMonths
-  saleReceiptNumber?: string;
-  customerName?: string;
-  customerPhone?: string;
-  notes?: string;
+export type ShopAssetCategory =
+  | 'Diagnostics & Bench'
+  | 'Storage & Cloning'
+  | 'Soldering & Optics'
+  | 'Cables & Adapters'
+  | 'Hand & Power Tools'
+  | 'Test Components'
+  | 'Other Equipment';
+
+export interface ShopAssetSaleInfo {
+  soldPrice: number;        // Selling price in IDR (Rp)
+  soldDate: string;         // ISO timestamp
+  soldToCustomer?: string;  // Customer / Buyer name
+  customerPhone?: string;   // Phone number
+  paymentMethod?: string;   // Cash, Transfer, QRIS
+  receiptNumber?: string;   // Optional POS receipt reference
+  soldBy: string;           // Staff operator name
+  notes?: string;           // Sale notes / reason
+}
+
+export interface ShopAsset {
+  id: string;               // e.g. "asset-1741..."
+  assetTag: string;         // e.g. "AST-1042" (visible barcode/label)
+  name: string;             // e.g. "Orico 6629 Dual SATA HDD Cloner Dock"
+  category: ShopAssetCategory;
+  brand: string;            // e.g. "Orico", "Andonstar", "Quick", "Fluke"
+  model?: string;           // e.g. "6629US3-C"
+  serialNumber?: string;    // Optional manufacturer S/N
+  status: ShopAssetStatus;
+  location: string;         // e.g. "Workbench 1 - Shelf B", "Repair Station"
+  assignedTo?: string;      // Technician or Station currently using it
+  condition: 'EXCELLENT' | 'GOOD' | 'FAIR' | 'NEEDS_REPAIR' | 'DAMAGED';
+  purchaseDate?: string;    // YYYY-MM-DD
+  purchaseCost?: number;    // IDR (Rp)
+  notes?: string;           // Condition notes, accessories included
+  saleInfo?: ShopAssetSaleInfo; // Present when status === 'SOLD'
+  createdAt: string;
+  updatedAt: string;
+  lastModifiedBy: string;
 }
 ```
 
-#### 2. Enhanced Item & Cart Integration
-- **`Item` Model Extension**:
-  - `hasSerials: boolean` (identifies serialized hardware vs bulk items like screws or cables).
-  - `defaultWarrantyMonths: number` (e.g. 12, 24, 36 months).
-  - Automatically enforce: For serialized items, `stock` equals the count of serial numbers with `status === 'IN_STOCK'`.
-- **`CartItem` & `SaleRecord`**:
-  - When a cashier adds a serialized item to the cart, the UI displays a Serial Number picker/scanner.
-  - Cashier selects or scans the exact physical S/N(s) matching the quantity being sold.
-  - Receipt records the exact serial numbers with warranty expiration dates.
-
-#### 3. Dedicated Warranty & RMA Portal
-A new, streamlined tab and modal tool in the application:
-- **Instant S/N Lookup**: Cashier or technician can scan or paste any serial number:
-  - Instantly reveals: Item model, purchase receipt #, customer name, date sold, warranty status (e.g., `Active - 418 Days Left` or `Expired`), and past repair logs.
-- **RMA Claim Processing**:
-  - Issue RMA claim ticket (e.g., `RMA-2026-001`).
-  - Claim reasons: Defective / Artifacting / Dead on Arrival / Customer Return.
-  - Action options:
-    1. *Vendor RMA*: Mark unit as `RMA_PENDING` (sent to Asus, MSI, etc.).
-    2. *Direct Unit Replacement*: Issue replacement unit from in-stock serial numbers and record the exchange.
-    3. *Defective Write-off*: Mark unit as `DEFECTIVE` and adjust financial records.
-
----
-
-## 3. Phased Roadmap
-
-### Phase 1: Serial Number Tracking & POS Checkout (Immediate)
-- Update data types in `/src/types/index.ts` with `ItemSerialNumber`, `SerialStatus`, and `RmaRecord`.
-- Update seed data in `/src/data/seedData.ts` with realistic serial numbers for GPUs, CPUs, Motherboards, and SSDs.
-- Enhance `AppContext.tsx` with serial number management methods:
-  - `addSerialNumbers(itemId, serialsList, warrantyMonths)`
-  - `updateSerialStatus(serialId, newStatus, notes)`
-  - Automatic inventory stock synchronization.
-- Upgrade `ItemDetailModal.tsx`:
-  - Add a dedicated **"Serial Numbers & Warranty"** tab.
-  - Display all unit serials with status badges (`In Stock`, `Sold`, `Under RMA`).
-  - Batch add new serials via multi-line text input or barcode scanner.
-- Upgrade `PosView.tsx`:
-  - Display serial number selector when serialized products are in the cart.
-  - Validate that exact serial numbers are assigned prior to checkout.
-  - Mark serials as `SOLD` and calculate `warrantyExpiryDate` upon checkout.
-- Upgrade `ReceiptModal.tsx`:
-  - Print individual serial numbers and their respective warranty expiration dates right below each line item.
-
-### Phase 2: Warranty Lookup & RMA Center
-- Add a **Warranty & RMA Center** view / modal accessible to both Staff and Admin.
-- Barcode / S/N live verification query tool.
-- Step-by-step RMA claim creation and resolution modal (Vendor RMA, Replacement, or Restock).
-- Full audit log integration for all RMA and serial operations.
-
-### Phase 3: Returns, Refunds & Shift Drawer Reconciliation
-- Process full or partial returns against past sales receipts, restoring the returned serial number to `IN_STOCK` or `DEFECTIVE`.
-- Shift Drawer Management (Start-of-Day float, Cash Drops, End-of-Day X/Z balancing report).
-
-### Phase 4: Firebase Cloud Data Store Integration (Completed)
-- Provisioned Cloud Firestore database in Google Cloud project `gen-lang-client-0434349786` (region `asia-southeast1`).
-- Created `/firebase-blueprint.json` defining collections for `items`, `sales`, `rmas`, `users`, `logs`, and `categories`.
-- Implemented and deployed production security rules `/firestore.rules` adhering to the 8 security pillars with strict type validation.
-- Initialized Firebase client in `/src/lib/firebase.ts` targeting `firestoreDatabaseId`.
-- Added bidirectional real-time synchronization in `AppContext.tsx` with `onSnapshot` listeners and automatic seed initialization.
-- Added mutations sync (`syncDoc` / `deleteDocById`) across inventory, serial registration, sales checkout, warranty RMA claims, category management, and audit logs.
-- Added live cloud status indicator in `Header.tsx` displaying "Firestore Live".
-
----
-
-## 4. Verification & Testing Strategy
-- Verified creating and editing items syncs to Firestore `items` collection.
-- Verified serialized item POS checkout creates `sales` records and updates item serial statuses to `SOLD`.
-- Confirmed receipts display serial numbers and calculated warranty expiry dates.
-- Verified RMA workflow transitions serials and records RMA tickets in Firestore `rmas`.
-- Built and linted with zero TypeScript or Vite errors via `compile_applet` and `lint_applet`.
+### Implementation Checklist
+1. **Types**: Add `ShopAsset`, `ShopAssetStatus`, `ShopAssetCategory`, and `ShopAssetSaleInfo` to `src/types/index.ts`.
+2. **Context**:
+   - Add `shopAssets` state and CRUD operations:
+     - `addShopAsset`
+     - `updateShopAsset`
+     - `updateAssetStatus`
+     - `sellShopAsset(id, saleData)` (records sale details, updates status to `SOLD`, and logs audit trail)
+     - `deleteShopAsset`
+   - Wire real-time Firestore synchronization on the `/shop_assets` collection.
+   - Update POS dispatch handler to optionally accept a shop asset for checkout.
+3. **Database Schema & Security Rules**:
+   - Update `firebase-blueprint.json` with the `ShopAsset` entity and `/shop_assets/{assetId}` path.
+   - Update `firestore.rules` to secure `/shop_assets/{assetId}` with validation rules.
+4. **UI Components**:
+   - Create `src/views/ShopAssetsView.tsx` with metrics overview (including Sold assets revenue), searchable/filterable cards, and dense table view.
+   - Create `src/components/ShopAssetModal.tsx` for adding and editing shop gear.
+   - Create `src/components/ShopAssetDetailModal.tsx` for detailed specs, quick status updates, and history notes.
+   - Create `src/components/SellAssetModal.tsx` to handle selling a shop asset with selling price, customer info, and option to checkout via POS.
+   - Update `src/components/Sidebar.tsx` to include `Shop Assets & Tools` navigation item with alert counter for assets needing service or broken.
+   - Update `src/App.tsx` and `src/components/Header.tsx` to mount the new view.
+5. **Verification**: Co-execute `compile_applet` and `lint_applet` to ensure zero type errors, run dev server check, and test cloud sync.

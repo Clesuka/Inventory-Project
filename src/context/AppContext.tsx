@@ -20,6 +20,11 @@ import {
   RmaRecord,
   RmaStatus,
   SoldSerialInfo,
+  ShopAsset,
+  ShopAssetStatus,
+  ShopAssetCategory,
+  ShopAssetCondition,
+  ShopAssetSaleInfo,
 } from '../types';
 import {
   SEED_ACCOUNTS,
@@ -163,6 +168,34 @@ interface AppContextType {
   auditLogs: AuditLog[];
   clearLogs: () => void;
 
+  // Shop Assets & Equipment Management (Workshop Tools & Diagnostics)
+  shopAssets: ShopAsset[];
+  addShopAsset: (
+    assetData: Omit<ShopAsset, 'id' | 'createdAt' | 'updatedAt' | 'lastModifiedBy'>
+  ) => ShopAsset;
+  updateShopAsset: (
+    id: string,
+    updates: Partial<Omit<ShopAsset, 'id' | 'createdAt' | 'updatedAt' | 'lastModifiedBy'>>,
+    reason?: string
+  ) => void;
+  updateAssetStatus: (
+    id: string,
+    newStatus: ShopAssetStatus,
+    note?: string
+  ) => { success: boolean; error?: string };
+  sellShopAsset: (
+    id: string,
+    saleData: {
+      soldPrice: number;
+      soldToCustomer?: string;
+      customerPhone?: string;
+      paymentMethod?: string;
+      notes?: string;
+    }
+  ) => { success: boolean; error?: string };
+  deleteShopAsset: (id: string, reason?: string) => { success: boolean; error?: string };
+  exportShopAssetsCsv: () => void;
+
   // Cloud sync
   isCloudConnected: boolean;
 
@@ -183,6 +216,7 @@ const STORAGE_KEYS = {
   SALES: 'rf_sales_v2',
   LOGS: 'rf_logs_v2',
   RMAS: 'rf_rmas_v2',
+  SHOP_ASSETS: 'rf_shop_assets_v2',
 };
 
 const AVATAR_COLORS = [
@@ -303,6 +337,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   });
 
+  // Shop assets & workshop equipment
+  const [shopAssets, setShopAssets] = useState<ShopAsset[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.SHOP_ASSETS);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
   // One-time cleanup of legacy demo seed data from browser localStorage
   useEffect(() => {
     try {
@@ -390,6 +434,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       console.error(e);
     }
   }, [auditLogs]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.SHOP_ASSETS, JSON.stringify(shopAssets));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [shopAssets]);
 
   // Cloud sync state & helpers
   const [isCloudConnected, setIsCloudConnected] = useState<boolean>(true);
@@ -517,6 +569,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
     );
 
+    const unsubShopAssets = onSnapshot(
+      collection(db, 'shop_assets'),
+      (snapshot) => {
+        if (snapshot.empty) {
+          setShopAssets([]);
+        } else {
+          const loaded = snapshot.docs.map((d) => d.data() as ShopAsset);
+          loaded.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          setShopAssets(loaded);
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'shop_assets');
+      }
+    );
+
     return () => {
       unsubItems();
       unsubSales();
@@ -524,6 +592,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       unsubUsers();
       unsubLogs();
       unsubCategories();
+      unsubShopAssets();
     };
   }, []);
 
@@ -1992,6 +2061,287 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     link.remove();
   };
 
+  // SHOP ASSETS CRUD & MANAGEMENT
+  const addShopAsset = (
+    assetData: Omit<ShopAsset, 'id' | 'createdAt' | 'updatedAt' | 'lastModifiedBy'>
+  ): ShopAsset => {
+    const operatorName = currentUser ? currentUser.name : 'System';
+    const operatorId = currentUser ? currentUser.id : 'usr-system';
+    const operatorRole = currentUser ? currentUser.role : 'Staff';
+
+    const now = new Date().toISOString();
+    const newAsset: ShopAsset = {
+      ...assetData,
+      id: `asset-${Date.now()}`,
+      assetTag: assetData.assetTag?.trim() || `AST-${Math.floor(1000 + Math.random() * 9000)}`,
+      createdAt: now,
+      updatedAt: now,
+      lastModifiedBy: operatorName,
+    };
+
+    setShopAssets((prev) => [newAsset, ...prev]);
+    syncDoc('shop_assets', newAsset.id, newAsset);
+
+    const log: AuditLog = {
+      id: `log-${Date.now()}`,
+      timestamp: now,
+      action: 'CREATE_SHOP_ASSET',
+      entityType: 'SHOP_ASSET',
+      entityId: newAsset.id,
+      entityName: newAsset.name,
+      operatorId,
+      operatorName,
+      operatorRole,
+      details: `Added new shop tool "${newAsset.name}" [${newAsset.assetTag}] at ${newAsset.location} (Status: ${newAsset.status})`,
+    };
+    setAuditLogs((prev) => [log, ...prev]);
+    syncDoc('logs', log.id, log);
+
+    return newAsset;
+  };
+
+  const updateShopAsset = (
+    id: string,
+    updates: Partial<Omit<ShopAsset, 'id' | 'createdAt' | 'updatedAt' | 'lastModifiedBy'>>,
+    reason?: string
+  ) => {
+    const target = shopAssets.find((a) => a.id === id);
+    if (!target) return;
+
+    const operatorName = currentUser ? currentUser.name : 'System';
+    const operatorId = currentUser ? currentUser.id : 'usr-system';
+    const operatorRole = currentUser ? currentUser.role : 'Staff';
+
+    const diffs: AuditFieldDiff[] = [];
+    (Object.keys(updates) as (keyof typeof updates)[]).forEach((key) => {
+      if (updates[key] !== undefined && updates[key] !== target[key]) {
+        const valFrom = target[key];
+        const valTo = updates[key];
+        diffs.push({
+          field: String(key),
+          from: valFrom !== undefined ? (typeof valFrom === 'object' ? JSON.stringify(valFrom) : String(valFrom)) : '',
+          to: valTo !== undefined ? (typeof valTo === 'object' ? JSON.stringify(valTo) : String(valTo)) : '',
+        });
+      }
+    });
+
+    const now = new Date().toISOString();
+    const updatedAsset: ShopAsset = {
+      ...target,
+      ...updates,
+      updatedAt: now,
+      lastModifiedBy: operatorName,
+    };
+
+    setShopAssets((prev) => prev.map((a) => (a.id === id ? updatedAsset : a)));
+    syncDoc('shop_assets', id, updatedAsset);
+
+    const log: AuditLog = {
+      id: `log-${Date.now()}`,
+      timestamp: now,
+      action: 'UPDATE_SHOP_ASSET',
+      entityType: 'SHOP_ASSET',
+      entityId: target.id,
+      entityName: target.name,
+      operatorId,
+      operatorName,
+      operatorRole,
+      details: reason?.trim() || `Updated shop tool "${target.name}" attributes`,
+      diff: diffs.length > 0 ? diffs : undefined,
+    };
+    setAuditLogs((prev) => [log, ...prev]);
+    syncDoc('logs', log.id, log);
+  };
+
+  const updateAssetStatus = (
+    id: string,
+    newStatus: ShopAssetStatus,
+    note?: string
+  ): { success: boolean; error?: string } => {
+    const target = shopAssets.find((a) => a.id === id);
+    if (!target) return { success: false, error: 'Shop asset not found.' };
+
+    const operatorName = currentUser ? currentUser.name : 'System';
+    const operatorId = currentUser ? currentUser.id : 'usr-system';
+    const operatorRole = currentUser ? currentUser.role : 'Staff';
+
+    const oldStatus = target.status;
+    const now = new Date().toISOString();
+    const dateFormatted = new Date().toLocaleDateString();
+    const updatedNotes = note?.trim()
+      ? `${target.notes ? target.notes + '\n' : ''}[${dateFormatted}] Status changed from ${oldStatus} to ${newStatus}: ${note.trim()}`
+      : target.notes;
+
+    const updatedAsset: ShopAsset = {
+      ...target,
+      status: newStatus,
+      notes: updatedNotes,
+      updatedAt: now,
+      lastModifiedBy: operatorName,
+    };
+
+    setShopAssets((prev) => prev.map((a) => (a.id === id ? updatedAsset : a)));
+    syncDoc('shop_assets', id, updatedAsset);
+
+    const log: AuditLog = {
+      id: `log-${Date.now()}`,
+      timestamp: now,
+      action: 'STATUS_CHANGE_SHOP_ASSET',
+      entityType: 'SHOP_ASSET',
+      entityId: target.id,
+      entityName: target.name,
+      operatorId,
+      operatorName,
+      operatorRole,
+      details: `Changed status of "${target.name}" from ${oldStatus} to ${newStatus}${note ? ` (${note})` : ''}`,
+      diff: [{ field: 'status', from: oldStatus, to: newStatus }],
+    };
+    setAuditLogs((prev) => [log, ...prev]);
+    syncDoc('logs', log.id, log);
+
+    return { success: true };
+  };
+
+  const sellShopAsset = (
+    id: string,
+    saleData: {
+      soldPrice: number;
+      soldToCustomer?: string;
+      customerPhone?: string;
+      paymentMethod?: string;
+      notes?: string;
+    }
+  ): { success: boolean; error?: string } => {
+    const target = shopAssets.find((a) => a.id === id);
+    if (!target) return { success: false, error: 'Shop asset not found.' };
+
+    const operatorName = currentUser ? currentUser.name : 'System';
+    const operatorId = currentUser ? currentUser.id : 'usr-system';
+    const operatorRole = currentUser ? currentUser.role : 'Staff';
+
+    const now = new Date().toISOString();
+    const saleInfo: ShopAssetSaleInfo = {
+      soldPrice: Math.max(0, saleData.soldPrice),
+      soldDate: now,
+      soldToCustomer: saleData.soldToCustomer?.trim() || undefined,
+      customerPhone: saleData.customerPhone?.trim() || undefined,
+      paymentMethod: saleData.paymentMethod?.trim() || 'Cash',
+      soldBy: operatorName,
+      notes: saleData.notes?.trim() || undefined,
+    };
+
+    const updatedAsset: ShopAsset = {
+      ...target,
+      status: 'SOLD',
+      saleInfo,
+      updatedAt: now,
+      lastModifiedBy: operatorName,
+    };
+
+    setShopAssets((prev) => prev.map((a) => (a.id === id ? updatedAsset : a)));
+    syncDoc('shop_assets', id, updatedAsset);
+
+    const formattedPrice = formatIDR(saleInfo.soldPrice);
+    const log: AuditLog = {
+      id: `log-${Date.now()}`,
+      timestamp: now,
+      action: 'SELL_SHOP_ASSET',
+      entityType: 'SHOP_ASSET',
+      entityId: target.id,
+      entityName: target.name,
+      operatorId,
+      operatorName,
+      operatorRole,
+      details: `Sold shop equipment "${target.name}" [${target.assetTag}] for ${formattedPrice} to ${saleInfo.soldToCustomer || 'Customer'} via ${saleInfo.paymentMethod}`,
+      diff: [
+        { field: 'status', from: target.status, to: 'SOLD' },
+        { field: 'soldPrice', from: 0, to: saleInfo.soldPrice },
+      ],
+    };
+    setAuditLogs((prev) => [log, ...prev]);
+    syncDoc('logs', log.id, log);
+
+    return { success: true };
+  };
+
+  const deleteShopAsset = (id: string, reason?: string): { success: boolean; error?: string } => {
+    const target = shopAssets.find((a) => a.id === id);
+    if (!target) return { success: false, error: 'Shop asset not found.' };
+
+    const operatorName = currentUser ? currentUser.name : 'System';
+    const operatorId = currentUser ? currentUser.id : 'usr-system';
+    const operatorRole = currentUser ? currentUser.role : 'Staff';
+
+    setShopAssets((prev) => prev.filter((a) => a.id !== id));
+    deleteDocById('shop_assets', id);
+
+    const log: AuditLog = {
+      id: `log-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      action: 'DELETE_SHOP_ASSET',
+      entityType: 'SHOP_ASSET',
+      entityId: target.id,
+      entityName: target.name,
+      operatorId,
+      operatorName,
+      operatorRole,
+      details: reason?.trim() || `Removed shop asset "${target.name}" [${target.assetTag}] from workshop registry`,
+    };
+    setAuditLogs((prev) => [log, ...prev]);
+    syncDoc('logs', log.id, log);
+
+    return { success: true };
+  };
+
+  const exportShopAssetsCsv = () => {
+    const headers = [
+      'Asset Tag',
+      'Name',
+      'Brand',
+      'Model',
+      'Category',
+      'Status',
+      'Condition',
+      'Location',
+      'Assigned To',
+      'Serial Number',
+      'Purchase Date',
+      'Purchase Cost',
+      'Sold Price',
+      'Sold Date',
+      'Sold To',
+      'Notes',
+    ];
+
+    const rows = shopAssets.map((asset) => [
+      `"${asset.assetTag.replace(/"/g, '""')}"`,
+      `"${asset.name.replace(/"/g, '""')}"`,
+      `"${asset.brand.replace(/"/g, '""')}"`,
+      `"${(asset.model || '').replace(/"/g, '""')}"`,
+      `"${asset.category.replace(/"/g, '""')}"`,
+      `"${asset.status}"`,
+      `"${asset.condition}"`,
+      `"${asset.location.replace(/"/g, '""')}"`,
+      `"${(asset.assignedTo || '').replace(/"/g, '""')}"`,
+      `"${(asset.serialNumber || '').replace(/"/g, '""')}"`,
+      `"${asset.purchaseDate || ''}"`,
+      asset.purchaseCost ? asset.purchaseCost.toFixed(2) : '',
+      asset.saleInfo?.soldPrice ? asset.saleInfo.soldPrice.toFixed(2) : '',
+      `"${asset.saleInfo?.soldDate || ''}"`,
+      `"${(asset.saleInfo?.soldToCustomer || '').replace(/"/g, '""')}"`,
+      `"${(asset.notes || '').replace(/"/g, '""')}"`,
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `aceworld-shop-assets-${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -2025,6 +2375,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         completeSale,
         auditLogs,
         clearLogs,
+        shopAssets,
+        addShopAsset,
+        updateShopAsset,
+        updateAssetStatus,
+        sellShopAsset,
+        deleteShopAsset,
+        exportShopAssetsCsv,
         isCloudConnected,
         resetDataToSeed,
         exportDataJson,

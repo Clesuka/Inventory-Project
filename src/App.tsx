@@ -9,11 +9,12 @@ import { AuditLogView } from './views/AuditLogView';
 import { SalesHistoryView } from './views/SalesHistoryView';
 import { UserManagementView } from './views/UserManagementView';
 import { WarrantyRmaView } from './views/WarrantyRmaView';
+import { ShopAssetsView } from './views/ShopAssetsView';
 import { ItemModal } from './components/ItemModal';
 import { StockAdjustModal } from './components/StockAdjustModal';
 import { DeleteConfirmModal } from './components/DeleteConfirmModal';
 import { ReceiptModal } from './components/ReceiptModal';
-import { Item, SaleRecord } from './types';
+import { Item, SaleRecord, ShopAsset } from './types';
 import { Header } from './components/Header';
 
 function MainApp() {
@@ -21,7 +22,7 @@ function MainApp() {
 
   // Navigation tab state (starts at Store Overview Dashboard)
   const [currentTab, setCurrentTab] = useState<
-    'dashboard' | 'inventory' | 'pos' | 'warranty' | 'logs' | 'sales' | 'users'
+    'dashboard' | 'inventory' | 'pos' | 'warranty' | 'logs' | 'sales' | 'users' | 'assets'
   >('dashboard');
 
   // Mobile drawer state
@@ -71,6 +72,30 @@ function MainApp() {
 
   const handleSendToPos = (item: Item) => {
     setPosInitialItem(item);
+    setCurrentTab('pos');
+  };
+
+  const handleSendShopAssetToPos = (asset: ShopAsset, sellingPrice: number) => {
+    const posItem: Item = {
+      id: asset.id,
+      name: `[SHOP TOOL] ${asset.name}`,
+      brand: asset.brand,
+      category: 'Accessories',
+      size: asset.model || 'Shop Equipment',
+      sku: asset.assetTag,
+      buyPrice: asset.purchaseCost || 0,
+      sellPrice: sellingPrice,
+      stock: 1,
+      minStockAlert: 0,
+      location: asset.location,
+      notes: `Workshop inventory asset [${asset.assetTag}] sold from ${asset.location}`,
+      hasSerials: !!asset.serialNumber,
+      defaultWarrantyMonths: 1,
+      createdAt: asset.createdAt,
+      updatedAt: new Date().toISOString(),
+      lastModifiedBy: currentUser?.name || 'Staff',
+    };
+    setPosInitialItem(posItem);
     setCurrentTab('pos');
   };
 
@@ -133,6 +158,10 @@ function MainApp() {
 
           {currentTab === 'warranty' && (
             <WarrantyRmaView onOpenReceipt={(sale) => setActiveReceipt(sale)} />
+          )}
+
+          {currentTab === 'assets' && (
+            <ShopAssetsView onSendToPos={handleSendShopAssetToPos} />
           )}
 
           {currentTab === 'logs' && (

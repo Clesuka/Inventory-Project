@@ -86,6 +86,19 @@ service cloud.firestore {
       allow delete: if categoryId is string && categoryId.size() > 0 && categoryId.size() <= 128;
     }
 
+    // Shop assets & tools collection
+    match /shop_assets/{assetId} {
+      allow read: if true;
+      allow create, update: if isValidId(assetId)
+        && incoming().name is string && incoming().name.size() > 0 && incoming().name.size() <= 200
+        && incoming().assetTag is string && incoming().assetTag.size() > 0
+        && incoming().category is string
+        && incoming().brand is string
+        && incoming().status is string
+        && incoming().location is string;
+      allow delete: if isValidId(assetId);
+    }
+
     // Test connection collection
     match /test/connection {
       allow read: if true;

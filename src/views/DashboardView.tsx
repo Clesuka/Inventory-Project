@@ -14,13 +14,14 @@ import {
   PlusCircle,
   TrendingUp,
   Cpu,
+  Wrench,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { SaleRecord } from '../types';
 import { formatIDR } from '../utils/formatters';
 
 interface DashboardViewProps {
-  onNavigate: (tab: 'dashboard' | 'inventory' | 'pos' | 'warranty' | 'logs' | 'sales' | 'users') => void;
+  onNavigate: (tab: 'dashboard' | 'inventory' | 'pos' | 'warranty' | 'logs' | 'sales' | 'users' | 'assets') => void;
   onOpenAddItem: () => void;
   onViewReceipt: (sale: SaleRecord) => void;
 }
@@ -30,7 +31,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenAddItem,
   onViewReceipt,
 }) => {
-  const { currentUser, items, sales, auditLogs, rmas } = useApp();
+  const { currentUser, items, sales, auditLogs, rmas, shopAssets } = useApp();
 
   const isAdmin = currentUser?.role === 'Admin';
 
@@ -281,6 +282,28 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
               Verify serial numbers, check expiration, and file unit RMA claims.
+            </p>
+          </button>
+
+          {/* Shop Assets & Tools */}
+          <button
+            onClick={() => onNavigate('assets')}
+            className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-500 bg-slate-50/50 dark:bg-slate-800/40 text-left transition-all group cursor-pointer"
+          >
+            <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-2.5">
+              <Wrench className="w-4 h-4" />
+            </div>
+            <div className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <span>Shop Tools</span>
+                <span className="text-[10px] font-mono font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-1.5 py-0.2 rounded-full">
+                  {shopAssets.length}
+                </span>
+              </div>
+              <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-1 transition-transform" />
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+              Track bench equipment, cloner docks, test rigs, and tool sales.
             </p>
           </button>
         </div>

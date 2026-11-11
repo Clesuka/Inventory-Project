@@ -152,7 +152,12 @@ export type AuditAction =
   | 'DELETE_USER'
   | 'CREATE_CATEGORY'
   | 'UPDATE_CATEGORY'
-  | 'DELETE_CATEGORY';
+  | 'DELETE_CATEGORY'
+  | 'CREATE_SHOP_ASSET'
+  | 'UPDATE_SHOP_ASSET'
+  | 'STATUS_CHANGE_SHOP_ASSET'
+  | 'SELL_SHOP_ASSET'
+  | 'DELETE_SHOP_ASSET';
 
 export interface AuditFieldDiff {
   field: string;
@@ -164,7 +169,7 @@ export interface AuditLog {
   id: string;
   timestamp: string;
   action: AuditAction;
-  entityType: 'ITEM' | 'SALE' | 'USER' | 'CATEGORY' | 'SERIAL' | 'RMA';
+  entityType: 'ITEM' | 'SALE' | 'USER' | 'CATEGORY' | 'SERIAL' | 'RMA' | 'SHOP_ASSET';
   entityId: string;
   entityName: string;
   operatorId: string;
@@ -172,5 +177,61 @@ export interface AuditLog {
   operatorRole: string;
   details: string;
   diff?: AuditFieldDiff[];
+}
+
+export type ShopAssetStatus =
+  | 'ACTIVE'
+  | 'IN_USE'
+  | 'ON_SERVICE'
+  | 'BROKEN'
+  | 'STANDBY'
+  | 'SOLD';
+
+export type ShopAssetCategory =
+  | 'Diagnostics & Bench'
+  | 'Storage & Cloning'
+  | 'Soldering & Optics'
+  | 'Cables & Adapters'
+  | 'Hand & Power Tools'
+  | 'Test Components'
+  | 'Other Equipment';
+
+export type ShopAssetCondition =
+  | 'EXCELLENT'
+  | 'GOOD'
+  | 'FAIR'
+  | 'NEEDS_REPAIR'
+  | 'DAMAGED';
+
+export interface ShopAssetSaleInfo {
+  soldPrice: number;        // IDR (Rp)
+  soldDate: string;         // ISO timestamp
+  soldToCustomer?: string;  // Customer name
+  customerPhone?: string;   // Customer phone
+  paymentMethod?: string;   // Cash, QRIS, Bank Transfer, etc.
+  receiptNumber?: string;   // Optional POS receipt
+  soldBy: string;           // Operator name
+  notes?: string;           // Sale notes
+}
+
+export interface ShopAsset {
+  id: string;               // e.g. "asset-1741..."
+  assetTag: string;         // e.g. "AST-1042"
+  name: string;             // e.g. "Orico 6629 SATA HDD Cloner Dock"
+  category: ShopAssetCategory | string;
+  brand: string;            // e.g. "Orico", "Andonstar"
+  model?: string;           // e.g. "6629US3-C"
+  serialNumber?: string;    // Optional manufacturer S/N
+  status: ShopAssetStatus;
+  location: string;         // e.g. "Workbench 1 - Shelf B"
+  assignedTo?: string;      // Technician or Station
+  condition: ShopAssetCondition;
+  purchaseDate?: string;    // YYYY-MM-DD
+  purchaseCost?: number;    // IDR (Rp)
+  notes?: string;
+  saleInfo?: ShopAssetSaleInfo;
+  createdAt: string;
+  updatedAt: string;
+  lastModifiedBy: string;
 }
 

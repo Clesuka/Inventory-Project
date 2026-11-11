@@ -4,7 +4,7 @@ import { useApp } from '../context/AppContext';
 import { ThemeToggleSwitch } from './ThemeToggleSwitch';
 
 interface HeaderProps {
-  currentTab: 'dashboard' | 'inventory' | 'pos' | 'warranty' | 'logs' | 'sales' | 'users';
+  currentTab: 'dashboard' | 'inventory' | 'pos' | 'warranty' | 'logs' | 'sales' | 'users' | 'assets';
   onOpenMobileMenu: () => void;
   onNavigateHome: () => void;
 }
@@ -15,6 +15,7 @@ const TAB_TITLES: Record<string, { title: string; subtitle: string }> = {
   pos: { title: 'POS Register', subtitle: 'Checkout Terminal & Transactions' },
   warranty: { title: 'Warranty & RMA Center', subtitle: 'Serial Number Verification & Claims' },
   sales: { title: 'Sales History', subtitle: 'Completed Orders & Receipts' },
+  assets: { title: 'Shop Assets & Tools', subtitle: 'Workshop Equipment, Diagnostic Gear & Locations' },
   logs: { title: 'Audit Trail', subtitle: 'System Activity & Stock Tracking' },
   users: { title: 'User Accounts', subtitle: 'Operator Credentials & Permissions' },
 };

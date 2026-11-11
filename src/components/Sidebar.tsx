@@ -12,12 +12,13 @@ import {
   UserCheck,
   X,
   ChevronRight,
+  Wrench,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export interface SidebarProps {
-  currentTab: 'dashboard' | 'inventory' | 'pos' | 'warranty' | 'logs' | 'sales' | 'users';
-  onSelectTab: (tab: 'dashboard' | 'inventory' | 'pos' | 'warranty' | 'logs' | 'sales' | 'users') => void;
+  currentTab: 'dashboard' | 'inventory' | 'pos' | 'warranty' | 'logs' | 'sales' | 'users' | 'assets';
+  onSelectTab: (tab: 'dashboard' | 'inventory' | 'pos' | 'warranty' | 'logs' | 'sales' | 'users' | 'assets') => void;
   mobileOpen: boolean;
   onCloseMobile: () => void;
 }
@@ -28,13 +29,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
   mobileOpen,
   onCloseMobile,
 }) => {
-  const { currentUser, logout, items, rmas } = useApp();
+  const { currentUser, logout, items, rmas, shopAssets } = useApp();
 
   const isAdmin = currentUser?.role === 'Admin';
   const lowStockCount = items.filter((i) => i.stock <= i.minStockAlert).length;
   const openRmaCount = rmas.filter((r) => r.status === 'PENDING_REVIEW' || r.status === 'SENT_TO_VENDOR').length;
+  const attentionAssetsCount = shopAssets.filter((a) => a.status === 'BROKEN' || a.status === 'ON_SERVICE').length;
 
-  const handleNavClick = (tab: 'dashboard' | 'inventory' | 'pos' | 'warranty' | 'logs' | 'sales' | 'users') => {
+  const handleNavClick = (tab: 'dashboard' | 'inventory' | 'pos' | 'warranty' | 'logs' | 'sales' | 'users' | 'assets') => {
     onSelectTab(tab);
     onCloseMobile();
   };
@@ -190,6 +192,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </span>
             ) : (
               currentTab === 'warranty' && <ChevronRight className="w-3.5 h-3.5 opacity-70" />
+            )}
+          </button>
+
+          {/* Shop Assets & Tools (Workshop Equipment & Tools) */}
+          <button
+            type="button"
+            onClick={() => handleNavClick('assets')}
+            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer ${
+              currentTab === 'assets'
+                ? 'bg-blue-600 text-white font-semibold shadow-sm shadow-blue-500/20'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Wrench className="w-4 h-4 shrink-0" />
+              <span>Shop Assets & Tools</span>
+            </div>
+            {attentionAssetsCount > 0 ? (
+              <span
+                className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full ${
+                  currentTab === 'assets'
+                    ? 'bg-white text-blue-700'
+                    : 'bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300'
+                }`}
+                title={`${attentionAssetsCount} assets broken or under service`}
+              >
+                {attentionAssetsCount}
+              </span>
+            ) : (
+              currentTab === 'assets' && <ChevronRight className="w-3.5 h-3.5 opacity-70" />
             )}
           </button>
 
