@@ -1,175 +1,117 @@
-# Ace World Computer
+# Inventory Project
 
-A modern, high-performance Point of Sale (POS) and PC Hardware Inventory Terminal built with React, TypeScript, Tailwind CSS, and Firebase Firestore.
+Inventory Project is a point-of-sale and computer hardware inventory management system tailored for PC repair shops, custom system builders, and hardware retailers. It handles retail component inventory, internal workshop tools and equipment, sales checkout, warranty claims (RMA), and operational audit logging, backed by Firebase Firestore for real-time synchronization.
 
-Ace World Computer is engineered specifically for custom PC builders, hardware retail stores, and computer repair centers to manage inventory, serial-tracked components, warranties, point-of-sale checkouts, and RMA claims seamlessly.
+## Core Modules
 
----
+### Retail Inventory Management
+- Component cataloging across PC hardware categories (CPUs, GPUs, Motherboards, RAM, Storage, Power Supplies, Cases, Cooling, Peripherals, Prebuilt Systems).
+- Category filtering via horizontal scrolling tab buttons with real-time stock counters.
+- Zero-cost and zero-retail price support (Rp 0), accommodating promotional items, warranty replacements, or bundled goods.
+- Component-specific attributes, such as omitting color specifications for CPUs.
+- Serial number tracking with toggles for serialized products (e.g., Boxed CPUs, GPUs) versus non-serialized bulk supplies (e.g., Tray CPUs, thermal paste, cables).
+- Stock level adjustments with logged reasons (Restock, Damage, Audit Correction, Return).
 
-## ⚡ Features
+### Shop Assets & Workshop Tools
+- Tracking for internal store equipment and workshop apparatus that are not for sale (e.g., SATA cloning docks, test benches, digital microscopes, soldering stations, multimeters).
+- Asset metadata including asset tags, brand, model, specifications, purchase date, cost, serial numbers, and physical location within the shop (e.g., Bench A, Storage Shelf 2).
+- Operational status lifecycle: Active, In Use, On Service, Broken, and Sold/Liquidated.
+- Liquidation workflow allowing retired or decommissioned tools to be sold with recorded sale prices and notes.
+- Quick-filter tabs matching the inventory interface with live category counts.
 
-- **Component Inventory Management:**
-  - Track PC components (CPUs, GPUs, Motherboards, RAM, Storage, PSUs, Cases, Cooling, Peripherals, Prebuilts).
-  - Optional serial number tracking (enable for Boxed CPUs, GPUs, Motherboards; disable for Tray CPUs, bulk accessories, cables, thermal paste).
-  - Quick stock adjustment modal with audit reason tracking (Restock, Damage, Audit Correction, Return).
-  - Real-time search and filter by category, brand, supplier, or stock status.
+### Point of Sale (POS) Register
+- Barcode and product search for rapid cart entry.
+- Cart management with stock limit checks, quantity controls, and custom discounts.
+- Payment method support: Cash (with automatic change calculation), Debit/Credit Card, Bank Transfer, and QRIS.
+- Receipt generation with itemized lists, warranty terms, and direct print functionality.
 
-- **Category Management:**
-  - Create, view, and rename product categories.
-  - Renaming a category automatically updates and cascades across all assigned inventory items and Firestore documents.
+### Warranty & RMA Tracking
+- Intake ticket system for customer warranty claims and defective components.
+- Status progression: Pending, Inspecting, Sent to Vendor, Repaired, Replaced, and Rejected.
+- Serial number lookup to verify purchase dates and warranty validity against past sales records.
+- Service resolution notes and customer notification tracking.
 
-- **Point of Sale (POS) Register:**
-  - Fast, responsive barcode- and click-based item adding.
-  - Cart item quantity adjustment, stock limit enforcement, and discount options.
-  - Customer information input and instant payment processing (Cash, Card, Transfer, QRIS).
-  - Professional digital receipt preview and printing with itemized breakdown.
+### User Management & Access Control
+- Role-based permissions separating Administrator and Staff accounts.
+- Administrator accounts retain full administrative privileges, including asset deletion, category management, user creation, and audit reviews.
+- Staff accounts handle daily sales transactions, stock adjustments, and ticket updates.
 
-- **Warranty & RMA Tracking:**
-  - Dedicated RMA ticket management for customer warranty claims and defective components.
-  - Track claim statuses (`Pending`, `Inspecting`, `Sent to Vendor`, `Repaired`, `Replaced`, `Rejected`).
-  - Serial number lookup and warranty expiration verification.
+### Activity & Audit Logs
+- Timestamped audit entries for inventory additions, stock adjustments, price changes, asset liquidations, sales completions, and user updates.
+- Actor identification recording which staff member executed each action.
 
-- **User & Access Management (RBAC):**
-  - Role-based permissions: **Admin** (full access) and **Staff / Cashier** (POS, viewing inventory, processing tickets).
-  - Create and manage store employee accounts.
-
-- **Immutable Audit Logging:**
-  - Real-time logging of all critical store actions: inventory creation, category updates, price modifications, stock adjustments, completed sales, and user activity.
-
-- **Real-Time Cloud Sync & Offline Support:**
-  - Powered by Google Cloud Firestore with real-time multi-client synchronization.
-  - Offline-first fallback: seamlessly caches state in `localStorage` if disconnected and syncs when reconnected.
-
-- **Dark & Light Mode:**
-  - System-responsive with quick manual toggle switch.
-
----
-
-## 🛠️ Tech Stack
+## Technology Stack
 
 - **Frontend:** React 19, TypeScript, Vite
-- **Styling:** Tailwind CSS, Lucide React (icons), Motion
-- **Database & Persistence:** Firebase Firestore (`firebase@13.1.0`)
-- **State Management:** React Context API with real-time Firestore document listeners and optimistic updates
+- **Styling:** Tailwind CSS, Lucide React
+- **Database:** Firebase Firestore (multi-client real-time synchronization with local offline caching fallback)
+- **State Management:** React Context with Firestore document snapshots
 
----
-
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
+- Node.js (v18 or higher recommended)
+- npm or compatible package manager
 
-- [Node.js](https://nodejs.org/) (version 18 or higher recommended)
-- `npm` (comes with Node.js)
+### Local Development Setup
 
-### Installation & Local Run
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/your-username/aceworld-computer.git
-   cd aceworld-computer
-   ```
-
-2. **Install project dependencies:**
+1. Install dependencies:
    ```bash
    npm install
    ```
 
-3. **Start the local development server:**
+2. Start the development server:
    ```bash
    npm run dev
    ```
 
-4. **Open your browser:**
-   Navigate to `http://localhost:3000` to launch the terminal.
+3. Open `http://localhost:3000` in your browser.
 
-> **Note on Firebase:** Firebase credentials and the database ID are pre-configured in `firebase-applet-config.json`. You do **not** need to set up local environment variables (`.env`) to run the project.
+Firebase configuration is loaded directly from `firebase-applet-config.json`. No extra `.env` setup is needed for standard local operation.
 
----
+## Default Credentials
 
-## 🔑 Default Accounts
+The system initializes with default accounts for initial setup:
 
-When launching the application for the first time, you can sign in using either of the default accounts:
+| Role | Username | Password | Access Scope |
+| --- | --- | --- | --- |
+| Administrator | `admin` | `admin123` | Full access to all modules, settings, and logs |
+| Staff Member | `staff` | `staff123` | POS checkout, inventory adjustments, RMA tickets |
 
-| Role | User ID | Password | Permissions |
-| :--- | :--- | :--- | :--- |
-| **Administrator** | `admin` | `admin123` | Full access (Inventory, POS, RMA, Audit Logs, User Management, Category Management) |
-| **Staff Member** | `staff` | `staff123` | POS Register, Inventory view & stock adjust, Sales History, Warranty lookups |
+Password updates and new staff accounts can be managed under User Management by an Administrator.
 
-*(You can add or modify users anytime under **User Management** when logged in as an Administrator).*
+## Build and Production
 
----
+To build the static application bundle:
 
-## 📖 How to Use
-
-### 1. Dashboard
-- View total sales revenue, transactions count, low stock warnings, and open RMA tickets.
-- Access quick inventory shortcuts and review recent sales receipts.
-
-### 2. Inventory & Categories
-- **Add Items:** Click **"Add Hardware Item"** to register a new product with brand, SKU, serial number, cost price, selling price, warranty period, and supplier.
-- **Adjust Stock:** Click the stock adjustment icon on any item row to add or subtract quantity with an audit log reason.
-- **Manage Categories:** Click the **"Categories"** button at the top right of the inventory table to create new categories or rename existing ones.
-
-### 3. POS Cashier Terminal
-- Search or click items from the catalogue to add them to the transaction cart.
-- Enter customer details, select the payment method, and complete the order.
-- Click **"View Receipt"** to inspect the printable invoice or download a copy.
-
-### 4. Warranty & RMA
-- Create a new ticket when a customer brings in a defective component.
-- Record serial numbers, fault descriptions, customer contact, and update the resolution status as the item progresses through vendor repairs.
-
-### 5. Audit Log
-- Review an auditable trail of all modifications across the store, timestamped with the operating user's ID.
-
----
-
-## 🌐 Deploying to GitHub Pages
-
-This project is pre-configured with `base: './'` in `vite.config.ts` and includes a ready-to-use GitHub Actions workflow (`.github/workflows/deploy.yml`):
-
-1. **Push your code to GitHub:**
-   ```bash
-   git add .
-   git commit -m "Deploy to GitHub Pages"
-   git push origin main
-   ```
-2. **Enable GitHub Pages:**
-   - In your repository, go to **Settings** > **Pages**.
-   - Under **Build and deployment** > **Source**, select **GitHub Actions**.
-   - *(You do not need to create or pick a starter — GitHub will automatically detect `.github/workflows/deploy.yml`).*
-3. **Automatic Deployment:**
-   - Go to the **Actions** tab to watch your deployment build and deploy.
-   - Once completed, your app will be live and will automatically connect to your Firestore database.
-
-*(You can also deploy directly to **Vercel**, **Netlify**, or **Firebase Hosting** by setting the build command to `npm run build` and output directory to `dist`.)*
-
----
-
-## 📂 Project Structure
-
-```text
-├── firebase-applet-config.json   # Bundled Firebase connection config
-├── firestore.rules               # Deployed Firestore security and schema rules
-├── index.html                    # Web app entry point
-├── package.json                  # Dependencies and build scripts
-├── vite.config.ts                # Vite build and asset path configuration
-├── src/
-│   ├── App.tsx                   # Main layout and view routing
-│   ├── main.tsx                  # Application bootstrap
-│   ├── components/               # Modals, Navbar, Sidebar, and UI widgets
-│   ├── context/
-│   │   └── AppContext.tsx        # Global store state & real-time Firestore synchronization
-│   ├── data/                     # Initial seed hardware catalog and store data
-│   ├── lib/
-│   │   └── firebase.ts           # Firebase SDK initialization and Firestore exports
-│   ├── types/                    # TypeScript interfaces (Item, Sale, RMA, User, Log, etc.)
-│   ├── utils/                    # Currency formatting, receipt generators, and helpers
-│   └── views/                    # Dashboard, Inventory, POS, RMA, Users, Audit Views
+```bash
+npm run build
 ```
 
----
+The compiled assets will be placed in the `dist` directory, ready to be served by any static web server, GitHub Pages, Vercel, or Firebase Hosting.
 
-## 📄 License
+## Repository Structure
 
-This project is open-source and available under the [MIT License](LICENSE).
+```text
+├── firebase-applet-config.json   # Firestore connection credentials
+├── firestore.rules               # Firestore security and validation rules
+├── index.html                    # Application HTML entry point
+├── package.json                  # Scripts and dependencies
+├── vite.config.ts                # Vite bundler configuration
+└── src/
+    ├── App.tsx                   # Main layout and view routing
+    ├── main.tsx                  # React bootstrap file
+    ├── components/               # Modals, navigation, and shared UI elements
+    ├── context/
+    │   └── AppContext.tsx        # Central state, actions, and Firestore listeners
+    ├── data/                     # Seed inventory and shop asset catalog
+    ├── lib/
+    │   └── firebase.ts           # Firebase SDK initialization
+    ├── types/                    # TypeScript interfaces (Inventory, Assets, Sales, RMA)
+    ├── utils/                    # Currency formatting, receipt generators, helpers
+    └── views/                    # Dashboard, Inventory, Shop Assets, POS, RMA, Users, Audit
+```
+
+## License
+
+This software is released under the [MIT License](LICENSE).
